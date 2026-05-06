@@ -1,0 +1,1473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Marathon Saint-Clément-des-Baleines → La Rochelle · Dimanche 10 mai 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e1116;
+    --bg-2: #161b22;
+    --bg-3: #1f2730;
+    --line: #2a3340;
+    --fg: #e6edf3;
+    --fg-2: #9aa5b1;
+    --accent: #ff5a1f;
+    --accent-2: #ffb15a;
+    --good: #2dd17a;
+    --warn: #ffb648;
+    --bad: #ff5b5b;
+    --sky: #4ea8de;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 24px; }
+  header.top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+  }
+  header.top .title h1 { font-size: 22px; }
+  header.top .title .sub { color: var(--fg-2); font-size: 13px; margin-top: 4px; }
+  header.top .title .sub strong { color: var(--accent-2); }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+    background: var(--bg-3); color: var(--fg-2); border: 1px solid var(--line);
+  }
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;
+    margin: 18px 0 24px;
+  }
+  .stat {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+  }
+  .stat .k { color: var(--fg-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat .v { font-size: 22px; font-weight: 600; margin-top: 4px; }
+  .stat .v small { color: var(--fg-2); font-size: 12px; font-weight: 400; margin-left: 4px; }
+  .grid {
+    display: grid; gap: 18px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 980px) {
+    .grid.two { grid-template-columns: 3fr 2fr; }
+    .grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  .card {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden;
+  }
+  .card .head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+  }
+  .card .head h2 { font-size: 14px; }
+  .card .head .meta { color: var(--fg-2); font-size: 12px; }
+  .card .body { padding: 16px 18px; }
+
+  #map { height: 460px; width: 100%; }
+  .leaflet-container { background: #0a1118; }
+
+  .chart-wrap { position: relative; height: 240px; width: 100%; }
+  .chart-wrap canvas { display: block; }
+
+  /* Calculator */
+  .calc-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    align-items: end;
+  }
+  label { color: var(--fg-2); font-size: 12px; display: block; margin-bottom: 4px; }
+  input[type="time"], input[type="number"], input[type="text"], select {
+    width: 100%; background: var(--bg-3); color: var(--fg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .pace-display {
+    background: linear-gradient(135deg, rgba(255,90,31,0.15), rgba(255,177,90,0.05));
+    border: 1px solid rgba(255,90,31,0.3); border-radius: 10px; padding: 12px 14px;
+    margin: 12px 0;
+  }
+  .pace-display .big { font-size: 26px; font-weight: 700; color: var(--accent-2); letter-spacing: -0.02em; }
+  .pace-display .lbl { color: var(--fg-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pace-display .lbl-sub { color: var(--fg-2); font-size: 11px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .pace-display .grid-disp { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  .adjust {
+    background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; margin: 12px 0 0;
+  }
+  .adjust-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .adjust-head #adjustSummary { color: var(--accent-2); font-weight: 600; text-transform: none; letter-spacing: 0; }
+  .adjust-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+  .adjust-row .toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; color: var(--fg); }
+  .adjust-row input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+  .meta-sm { color: var(--fg-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .meta-sm.warn { color: var(--bad); }
+  .meta-sm.good { color: var(--good); }
+  .adjust-slider { padding: 8px 0 2px; border-top: 1px solid var(--line); margin-top: 4px; }
+  .adjust-slider label { color: var(--fg); font-size: 13px; margin-bottom: 6px; }
+  .adjust-slider .hint { color: var(--fg-2); font-size: 11px; margin-top: 4px; }
+
+  /* Hero brief */
+  .card.brief { background: linear-gradient(135deg, #161b22 0%, #1c2632 100%); margin-bottom: 18px; }
+  .brief-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0; }
+  .brief-block { padding: 18px 20px; border-right: 1px solid var(--line); }
+  .brief-block:last-child { border-right: none; }
+  .brief-emoji { font-size: 26px; line-height: 1; margin-bottom: 6px; }
+  .brief-stat { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--fg); }
+  .brief-stat.warn { color: var(--warn); }
+  .brief-stat.bad { color: var(--bad); }
+  .brief-lbl { color: var(--fg-2); font-size: 12px; margin-top: 4px; }
+  @media (max-width: 800px) {
+    .brief-block { border-right: none; border-bottom: 1px solid var(--line); }
+    .brief-block:last-child { border-bottom: none; }
+  }
+
+  /* Wider splits when full width */
+  .splits.splits-wide { max-height: 480px; }
+
+  .sub-h { color: var(--fg-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin: 16px 0 8px; font-weight: 600; }
+
+  /* Wind detail card */
+  .wind-hero { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: center; }
+  @media (max-width: 600px) { .wind-hero { grid-template-columns: 1fr; justify-items: center; } }
+  .wind-compass-wrap { display: flex; align-items: center; justify-content: center; }
+  .wind-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .wind-kpi {
+    background: var(--bg-3); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  }
+  .wind-kpi .lbl { color: var(--fg-2); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .wind-kpi .v { font-size: 18px; font-weight: 600; margin-top: 2px; color: var(--fg); }
+
+  .wind-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); margin-bottom: 8px; }
+  .wind-bar-seg {
+    display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600;
+    min-width: 0; padding: 0 6px; white-space: nowrap; overflow: hidden;
+  }
+  .wind-bar-seg.head { background: linear-gradient(90deg, #d94747, #ff5b5b); }
+  .wind-bar-seg.tail { background: linear-gradient(90deg, #2dd17a, #38e58a); color: #0e1116; }
+  .wind-bar-seg.cross { background: linear-gradient(90deg, #c08540, #ffb648); color: #0e1116; }
+
+  .wind-segments { font-size: 12px; }
+  .wind-segments .seg-line {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 5px 0; border-top: 1px dashed var(--line);
+  }
+  .wind-segments .seg-line:first-child { border-top: none; }
+  .wind-segments .seg-line .seg-l { color: var(--fg); }
+  .wind-segments .seg-line .seg-r { color: var(--fg-2); }
+  .wind-segments .seg-line .pill-mini {
+    display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 11px;
+  }
+  .pill-mini.head { background: rgba(255, 91, 91, 0.2); color: #ff8a8a; }
+  .pill-mini.tail { background: rgba(45, 209, 122, 0.2); color: #4cdf90; }
+  .pill-mini.cross { background: rgba(255, 182, 72, 0.2); color: #ffc977; }
+
+  .wind-hourly-wrap { background: var(--bg-3); border-radius: 8px; padding: 4px 10px; }
+  .wind-hourly { width: 100%; font-size: 12px; }
+  .wind-hourly th, .wind-hourly td { padding: 6px 6px; border-bottom: 1px solid var(--line); }
+  .wind-hourly th { color: var(--fg-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .wind-hourly tr:last-child td { border-bottom: none; }
+
+  .wind-tips {
+    background: rgba(78, 168, 222, 0.08); border: 1px solid rgba(78, 168, 222, 0.3);
+    border-left: 4px solid var(--sky); border-radius: 8px; padding: 10px 12px;
+    margin-top: 14px; font-size: 12px; color: var(--fg);
+  }
+  .wind-tips ul { margin: 4px 0 0; padding-left: 18px; }
+  .wind-tips li { margin-bottom: 3px; }
+
+  /* Map view toggles & legend */
+  .map-toggles { display: flex; gap: 4px; }
+  .map-toggles .chip { padding: 3px 10px; font-size: 11px; }
+  .map-legend {
+    display: none; padding: 6px 18px; background: var(--bg-3);
+    border-top: 1px solid var(--line); font-size: 11px; color: var(--fg-2);
+    gap: 12px; flex-wrap: wrap; align-items: center;
+  }
+  .map-legend.visible { display: flex; }
+  .map-legend .swatch { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  .wind-arrow {
+    background: rgba(15, 22, 30, 0.85); border: 1px solid var(--line); border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .wind-arrow svg { display: block; }
+  .wind-arrow .lbl {
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 5px; font-size: 9px; color: var(--fg-2); white-space: nowrap;
+    font-weight: 600;
+  }
+
+  /* Energy grid */
+  .energy-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+  }
+  .energy-grid .e {
+    background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .energy-grid .e .l { color: var(--fg-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .energy-grid .e .v { font-size: 20px; font-weight: 600; margin-top: 2px; }
+  .energy-grid .e .v small { color: var(--fg-2); font-size: 12px; font-weight: 400; margin-left: 4px; }
+  .energy-grid .e .h { font-size: 11px; color: var(--fg-2); margin-top: 4px; }
+
+  .nutrition-timeline {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+  .nut-event {
+    background: var(--bg-3); border: 1px solid var(--line); border-left: 3px solid var(--sky);
+    border-radius: 8px; padding: 8px 10px; font-size: 12px;
+  }
+  .nut-event.water { border-left-color: var(--sky); }
+  .nut-event.gel { border-left-color: var(--accent); }
+  .nut-event.salt { border-left-color: var(--warn); }
+  .nut-event.start { border-left-color: var(--good); }
+  .nut-event.finish { border-left-color: var(--bad); }
+  .nut-event .nut-time { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .nut-event .nut-km { color: var(--fg-2); font-size: 11px; margin-left: 6px; }
+  .nut-event .nut-action { color: var(--fg); margin-top: 3px; }
+  .nut-event .nut-detail { color: var(--fg-2); font-size: 11px; margin-top: 1px; }
+
+  /* Split row coloring */
+  tr.up td { box-shadow: inset 3px 0 0 #ff5b5b; }
+  tr.up.steep td { background: rgba(255, 91, 91, 0.08); }
+  tr.down td { box-shadow: inset 3px 0 0 #2dd17a; }
+  tr.head td { box-shadow: inset 3px 0 0 #4ea8de; }
+  tr.tail td { box-shadow: inset 3px 0 0 #ffb648; }
+  td.cond { font-size: 11px; color: var(--fg-2); white-space: nowrap; }
+  td.delta-pos { color: #ff8a4a; font-weight: 600; }
+  td.delta-neg { color: var(--good); font-weight: 600; }
+
+  /* Splits table */
+  .splits {
+    max-height: 380px; overflow-y: auto; border-top: 1px solid var(--line);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { position: sticky; top: 0; background: var(--bg-2); color: var(--fg-2); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; z-index: 2; }
+  tr:hover td { background: rgba(255, 90, 31, 0.06); cursor: pointer; }
+  tr.highlight td { background: rgba(255, 90, 31, 0.18); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.muted { color: var(--fg-2); }
+
+  /* Weather */
+  .weather-summary {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;
+  }
+  .weather-summary .item {
+    background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .weather-summary .item .l { color: var(--fg-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .weather-summary .item .v { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .weather-summary .item .v small { font-size: 12px; color: var(--fg-2); font-weight: 400; }
+
+  .chart-wrap.weather { height: 220px; }
+  .legend { color: var(--fg-2); font-size: 12px; display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+  .legend span::before { content:""; display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align: middle; }
+
+  .km-icon {
+    background: var(--accent); color: white; border-radius: 50%; width: 22px; height: 22px;
+    line-height: 22px; text-align: center; font-size: 11px; font-weight: 700;
+    border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .start-icon { background: var(--good); }
+  .end-icon { background: var(--bad); }
+
+  .alert {
+    background: rgba(255, 182, 72, 0.1); border: 1px solid rgba(255, 182, 72, 0.4);
+    border-left: 4px solid var(--warn); border-radius: 8px; padding: 10px 14px;
+    color: var(--fg); font-size: 13px; margin-bottom: 12px;
+  }
+  .alert.bad { background: rgba(255, 91, 91, 0.08); border-color: rgba(255, 91, 91, 0.4); border-left-color: var(--bad); }
+  .alert.good { background: rgba(45, 209, 122, 0.08); border-color: rgba(45, 209, 122, 0.4); border-left-color: var(--good); }
+  .alert b { color: var(--accent-2); }
+
+  footer { color: var(--fg-2); font-size: 12px; padding: 24px 0; text-align: center; }
+
+  .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 0; }
+  .chip { background: var(--bg-3); border: 1px solid var(--line); padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; cursor: pointer; user-select: none; }
+  .chip:hover { border-color: var(--accent); color: var(--accent-2); }
+  .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="title">
+    <h1>Marathon Saint-Clément-des-Baleines → La Rochelle</h1>
+    <div class="sub">
+      <strong>Dimanche 10 mai 2026</strong> · 43,66 km · Course à pied ·
+      <a href="https://www.strava.com/routes/3485704414812798338" target="_blank">Voir sur Strava ↗</a>
+    </div>
+  </div>
+  <div>
+    <span class="pill">📍 Île de Ré</span>
+    <span class="pill">🏁 Phare des Baleines → La Rochelle</span>
+  </div>
+</header>
+
+<section class="stats" id="stats"></section>
+
+<!-- HERO BRIEF -->
+<div class="card brief">
+  <div class="brief-grid">
+    <div class="brief-block">
+      <div class="brief-emoji">🏃</div>
+      <div class="brief-stat" id="briefRun">—</div>
+      <div class="brief-lbl">durée prévue (avec ajustements)</div>
+    </div>
+    <div class="brief-block">
+      <div class="brief-emoji">⏰</div>
+      <div class="brief-stat" id="briefArrive">—</div>
+      <div class="brief-lbl">arrivée prévue (départ <span id="briefStart">9h</span>)</div>
+    </div>
+    <div class="brief-block">
+      <div class="brief-emoji">🌡️</div>
+      <div class="brief-stat" id="briefTemp">—</div>
+      <div class="brief-lbl">temp pendant la course</div>
+    </div>
+    <div class="brief-block">
+      <div class="brief-emoji">💨</div>
+      <div class="brief-stat" id="briefWind">—</div>
+      <div class="brief-lbl">vent moyen course</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP FULL WIDTH -->
+<div class="card" style="margin-bottom: 18px;">
+  <div class="head">
+    <h2>🗺️ Tracé · 43,66 km point-à-point</h2>
+    <div class="map-toggles">
+      <span class="chip active" data-view="route">Tracé</span>
+      <span class="chip" data-view="effort">Effort</span>
+      <span class="chip" data-view="wind">Vent</span>
+    </div>
+  </div>
+  <div id="map" style="height: 480px;"></div>
+  <div class="map-legend" id="mapLegend"></div>
+  <div class="meta" id="mapMeta" style="padding: 8px 18px; border-top: 1px solid var(--line);">Survole le profil ou clique un km pour repérer un point</div>
+</div>
+
+<!-- PROFILE + CALCULATOR -->
+<div class="grid two">
+  <div>
+    <div class="card">
+      <div class="head">
+        <h2>📈 Profil d'altitude</h2>
+        <div class="meta" id="profileMeta">D+ — · D− — · Pic — (Pont)</div>
+      </div>
+      <div class="body">
+        <div class="chart-wrap"><canvas id="elevation"></canvas></div>
+        <div class="legend">
+          <span style="--c:#ff5a1f">Altitude (m)</span>
+          <span style="color: var(--fg-2)">💡 Survole pour voir le point sur la carte</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="head">
+        <h2>⏱️ Calculateur d'allure</h2>
+        <div class="meta">Splits ajustés terrain + vent + fatigue</div>
+      </div>
+      <div class="body">
+        <div class="calc-row">
+          <div>
+            <label>Allure (min/km)</label>
+            <input type="range" id="paceRange" min="240" max="540" step="5" value="330" />
+            <input type="text" id="paceText" value="5:30" />
+          </div>
+          <div>
+            <label>Heure de départ</label>
+            <input type="time" id="startTime" value="09:00" />
+          </div>
+        </div>
+
+        <div class="chip-row">
+          <span class="chip" data-pace="270">4:30</span>
+          <span class="chip" data-pace="300">5:00</span>
+          <span class="chip active" data-pace="330">5:30</span>
+          <span class="chip" data-pace="360">6:00</span>
+          <span class="chip" data-pace="390">6:30</span>
+          <span class="chip" data-pace="420">7:00</span>
+          <span class="chip" data-pace="450">7:30</span>
+        </div>
+
+        <div class="adjust">
+          <div class="adjust-head">
+            <span>🎚️ Ajustements terrain & conditions</span>
+            <span class="meta-sm" id="adjustSummary">+0 s</span>
+          </div>
+          <div class="adjust-row">
+            <label class="toggle"><input type="checkbox" id="useElev" checked /><span>🏔️ Dénivelé (modèle GAP)</span></label>
+            <span class="meta-sm" id="elevDelta">+0 s</span>
+          </div>
+          <div class="adjust-row">
+            <label class="toggle"><input type="checkbox" id="useWind" checked /><span>💨 Vent (par segment, à l'heure de passage)</span></label>
+            <span class="meta-sm" id="windDelta">+0 s</span>
+          </div>
+          <div class="adjust-row">
+            <label class="toggle"><input type="checkbox" id="useFatigue" checked /><span>🥵 Fatigue (mur après km 25)</span></label>
+            <span class="meta-sm" id="fatigueDelta">+0 s</span>
+          </div>
+          <div class="adjust-slider">
+            <label>Niveau de fatigue : <b id="fatigueLevelLabel">8%</b> sur les derniers km</label>
+            <input type="range" id="fatigueLevel" min="0" max="15" step="1" value="8" />
+            <div class="hint">0% = très entraîné · 5–8% = ressenti standard · 12–15% = gros mur</div>
+          </div>
+        </div>
+
+        <div class="pace-display">
+          <div class="grid-disp">
+            <div>
+              <div class="lbl">Temps total ajusté</div>
+              <div class="big" id="totalTime">—</div>
+              <div class="lbl-sub" id="totalTimeBase">brut : —</div>
+            </div>
+            <div>
+              <div class="lbl">Arrivée prévue</div>
+              <div class="big" id="finishTime">—</div>
+              <div class="lbl-sub" id="paceAvg">allure moy. —</div>
+            </div>
+            <div>
+              <div class="lbl">Vitesse moyenne</div>
+              <div class="big" id="speed">—</div>
+              <div class="lbl-sub" id="paceEffort">effort équiv. —</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="color: var(--fg-2); font-size: 12px; margin-top: 6px;">
+          💡 L'allure que tu choisis est ton allure de base (terrain plat, sans vent, frais).
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPLITS FULL WIDTH -->
+<div class="card" style="margin-top: 18px;">
+  <div class="head">
+    <h2>📋 Splits estimés au km</h2>
+    <div class="meta">🟥 montée raide · 🟩 descente · clique une ligne pour zoomer la carte</div>
+  </div>
+  <div class="splits splits-wide">
+    <table id="splitsTable">
+      <thead><tr>
+        <th>Km</th>
+        <th class="num">Allure</th>
+        <th class="num">Δ</th>
+        <th class="num">Cumul</th>
+        <th class="num">Heure</th>
+        <th class="num">Conditions</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- WEATHER + WIND DETAIL -->
+<div class="grid two" style="margin-top: 18px;">
+  <div class="card">
+    <div class="head">
+      <h2>🌤️ Météo générale · Dim. 10 mai</h2>
+      <div class="meta" id="weatherMeta">Open-Meteo · Île de Ré</div>
+    </div>
+    <div class="body">
+      <div id="weatherAlerts"></div>
+      <div class="weather-summary" id="weatherSummary"></div>
+      <div class="chart-wrap weather"><canvas id="weatherChart"></canvas></div>
+      <div class="legend">
+        <span style="color:#ff8a4a">🌡 Temp °C</span>
+        <span style="color:#4ea8de">💧 Pluie %</span>
+        <span style="color:#9aa5b1">💨 Vent km/h</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head">
+      <h2>💨 Vent détaillé · pendant la course</h2>
+      <div class="meta">Direction · exposition · stratégie</div>
+    </div>
+    <div class="body">
+
+      <div class="wind-hero">
+        <div class="wind-compass-wrap">
+          <svg id="windCompass" viewBox="0 0 200 200" width="180" height="180"></svg>
+        </div>
+        <div class="wind-kpis">
+          <div class="wind-kpi"><div class="lbl">Vent moyen course</div><div class="v" id="windAvg">—</div></div>
+          <div class="wind-kpi"><div class="lbl">Rafale max prévue</div><div class="v" id="windPeak">—</div></div>
+          <div class="wind-kpi"><div class="lbl">Direction dominante</div><div class="v" id="windDom">—</div></div>
+          <div class="wind-kpi"><div class="lbl">Coût pour ta course</div><div class="v" id="windCost">—</div></div>
+        </div>
+      </div>
+
+      <h3 class="sub-h">⚖️ Exposition par tronçon</h3>
+      <div class="wind-bar" id="windBar"></div>
+      <div class="wind-segments" id="windSegments"></div>
+
+      <h3 class="sub-h">🕘 Heure par heure (créneau course)</h3>
+      <div class="wind-hourly-wrap">
+        <table class="wind-hourly" id="windHourlyTable">
+          <thead><tr><th>Heure</th><th class="num">Vent</th><th class="num">Rafales</th><th>Direction</th><th>Effet course</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="wind-tips" id="windTips"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top: 18px;">
+  <div class="head">
+    <h2>🍫 Plan nutrition & énergie</h2>
+    <div class="meta">
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-2);">
+        Poids <input type="number" id="weight" value="70" min="40" max="120" step="1" style="width:60px;padding:4px 8px;font-size:13px;" /> kg
+      </label>
+    </div>
+  </div>
+  <div class="body">
+    <div class="energy-grid" id="energyStats"></div>
+    <div class="nutrition-timeline" id="nutritionTimeline"></div>
+  </div>
+</div>
+
+<footer>
+  Données : GPX Strava · Météo Open-Meteo (prévision à 6 jours, à reconfirmer la veille) · Carte © OpenStreetMap contributors
+</footer>
+
+</div>
+
+<script id="route-data" type="application/json">{"name":"Course \u00e0 pied Saint-Cl\u00e9ment-des-Baleines 43,65 km","stravaUrl":"https://www.strava.com/routes/3485704414812798338","totalKm":43.659,"totalPoints":993,"elevationGain":75.0,"elevationLoss":73.0,"elevationMin":1.0,"elevationMax":37.0,"start":{"lat":46.243900000000004,"lon":-1.5605600000000002,"ele":2.4},"end":{"lat":46.15635,"lon":-1.1541700000000001,"ele":3.5},"bbox":[[46.14591,-1.5620500000000002],[46.243900000000004,-1.1534600000000002]],"center":[46.19491,-1.35776],"track":[[46.2439,-1.56056],[46.24364,-1.55999],[46.24338,-1.55942],[46.24313,-1.55897],[46.24258,-1.55943],[46.24231,-1.55973],[46.24222,-1.55991],[46.24218,-1.56004],[46.24212,-1.56044],[46.24209,-1.56108],[46.24205,-1.56123],[46.24194,-1.56136],[46.24178,-1.56146],[46.24165,-1.56149],[46.24114,-1.56154],[46.24105,-1.56173],[46.24102,-1.56205],[46.24093,-1.56193],[46.24042,-1.56169],[46.24017,-1.56163],[46.23967,-1.56152],[46.23915,-1.56146],[46.23858,-1.56132],[46.23801,-1.56118],[46.23763,-1.56106],[46.23733,-1.56095],[46.23697,-1.56075],[46.23663,-1.56047],[46.23617,-1.56004],[46.23588,-1.55983],[46.23556,-1.55949],[46.23491,-1.55898],[46.23451,-1.558625],[46.23411,-1.55827],[46.2336,-1.557845],[46.23309,-1.55742],[46.2328,-1.55712],[46.2325,-1.55661],[46.23222,-1.556],[46.23196,-1.55553],[46.23164,-1.55505],[46.23116,-1.55443],[46.23068,-1.55381],[46.230145,-1.553155],[46.22961,-1.5525],[46.2297,-1.55234],[46.22974,-1.55211],[46.22969,-1.55207],[46.2294,-1.55159],[46.22912,-1.55105],[46.22883,-1.55017],[46.228555,-1.54927],[46.22828,-1.54837],[46.22813,-1.54726],[46.22808,-1.54637],[46.22792,-1.54568],[46.22789,-1.54559],[46.22775,-1.54526],[46.22766,-1.54487],[46.22774,-1.54479],[46.22769,-1.54469],[46.22763,-1.54445],[46.2276,-1.54407],[46.22753,-1.54383],[46.22727,-1.54315],[46.22703,-1.54247],[46.2268,-1.54183],[46.22655,-1.54137],[46.22608,-1.54065],[46.22607,-1.5406],[46.22583,-1.5404],[46.2256,-1.54015],[46.22553,-1.54004],[46.22543,-1.53984],[46.22537,-1.53984],[46.22532,-1.53978],[46.22502,-1.5395],[46.22484,-1.53924],[46.22434,-1.53856],[46.22385,-1.53805],[46.22345,-1.53743],[46.22306,-1.53644],[46.22266,-1.53563],[46.222275,-1.53506],[46.22189,-1.53449],[46.22185,-1.53441],[46.22185,-1.53435],[46.22227,-1.53377],[46.2227,-1.53319],[46.22278,-1.53293],[46.22297,-1.53261],[46.223593,-1.531753],[46.224215,-1.530895],[46.224838,-1.530038],[46.22546,-1.52918],[46.22533,-1.52888],[46.22507,-1.52839],[46.22483,-1.52787],[46.22451,-1.52682],[46.22402,-1.52587],[46.22384,-1.5256],[46.2237,-1.52546],[46.22329,-1.52515],[46.22287,-1.52489],[46.22278,-1.52479],[46.22259,-1.52448],[46.22244,-1.52438],[46.22224,-1.52431],[46.22179,-1.52424],[46.22134,-1.52417],[46.22114,-1.52408],[46.22094,-1.52394],[46.22053,-1.52351],[46.21998,-1.52276],[46.21962,-1.522095],[46.21926,-1.52143],[46.21922,-1.52128],[46.21927,-1.52068],[46.21924,-1.52051],[46.21916,-1.52042],[46.21893,-1.52025],[46.21868,-1.52001],[46.21793,-1.51936],[46.21785,-1.51921],[46.21775,-1.51906],[46.21741,-1.51876],[46.21721,-1.51861],[46.21699,-1.51855],[46.21665,-1.51858],[46.21649,-1.51855],[46.21609,-1.51829],[46.21542,-1.51768],[46.21504,-1.51699],[46.21495,-1.51687],[46.21479,-1.51668],[46.21458,-1.51652],[46.21441,-1.51645],[46.21377,-1.51624],[46.213,-1.51577],[46.21276,-1.5156],[46.21253,-1.51537],[46.21215,-1.51472],[46.21148,-1.51415],[46.21136,-1.51401],[46.21117,-1.51371],[46.21103,-1.51339],[46.21096,-1.51344],[46.21084,-1.51305],[46.21075,-1.51266],[46.21069,-1.51221],[46.21063,-1.51214],[46.21052,-1.51215],[46.21029,-1.51232],[46.21024,-1.51234],[46.21012,-1.51232],[46.21005,-1.51255],[46.20999,-1.51265],[46.20959,-1.513095],[46.20919,-1.51354],[46.20897,-1.51377],[46.20838,-1.51414],[46.20839,-1.51464],[46.20835,-1.51484],[46.20813,-1.51566],[46.20805,-1.51588],[46.20794,-1.51602],[46.20781,-1.51606],[46.20779,-1.51607],[46.20794,-1.51602],[46.20805,-1.51588],[46.20813,-1.51566],[46.20835,-1.51484],[46.20839,-1.51464],[46.20838,-1.51414],[46.20897,-1.51377],[46.20919,-1.51354],[46.20959,-1.513095],[46.20999,-1.51265],[46.21005,-1.51255],[46.21012,-1.51232],[46.20995,-1.51228],[46.20974,-1.51214],[46.20927,-1.51141],[46.20919,-1.51122],[46.20906,-1.5111],[46.20895,-1.51092],[46.20887,-1.51068],[46.20881,-1.51035],[46.20873,-1.51014],[46.20834,-1.50954],[46.207945,-1.509045],[46.20755,-1.50855],[46.20712,-1.5078],[46.20714,-1.50734],[46.20709,-1.50731],[46.20701,-1.50665],[46.20691,-1.50615],[46.20679,-1.50587],[46.20666,-1.50567],[46.20652,-1.50553],[46.20623,-1.50531],[46.20544,-1.50483],[46.20528,-1.50471],[46.20493,-1.50408],[46.20455,-1.50363],[46.20445,-1.50347],[46.20416,-1.5028],[46.20399,-1.50192],[46.20399,-1.501015],[46.20399,-1.50011],[46.20409,-1.49951],[46.2041,-1.49932],[46.20403,-1.49846],[46.20397,-1.49808],[46.20388,-1.49787],[46.20381,-1.49775],[46.20326,-1.49697],[46.20288,-1.49612],[46.20256,-1.49531],[46.202335,-1.494675],[46.20211,-1.49404],[46.20208,-1.49384],[46.20208,-1.49357],[46.20222,-1.49262],[46.20223,-1.49248],[46.20221,-1.49221],[46.20202,-1.49152],[46.20183,-1.49083],[46.201553,-1.489867],[46.201277,-1.488903],[46.201,-1.48794],[46.20098,-1.48774],[46.20099,-1.48745],[46.20107,-1.48709],[46.20117,-1.48681],[46.2015,-1.48632],[46.20163,-1.48603],[46.20188,-1.48534],[46.20196,-1.48503],[46.202075,-1.484385],[46.20219,-1.48374],[46.20222,-1.48329],[46.20235,-1.48269],[46.20246,-1.48202],[46.20264,-1.48138],[46.20304,-1.480485],[46.20344,-1.47959],[46.203725,-1.47892],[46.20401,-1.47825],[46.20409,-1.47793],[46.20427,-1.47717],[46.20445,-1.47641],[46.20452,-1.47626],[46.20472,-1.47608],[46.20485,-1.47587],[46.20512,-1.47532],[46.20539,-1.47477],[46.20552,-1.4746],[46.20567,-1.47448],[46.20587,-1.47438],[46.20608,-1.47421],[46.20638,-1.47411],[46.2071,-1.47399],[46.20721,-1.47394],[46.20724,-1.4739],[46.20722,-1.47384],[46.20701,-1.47354],[46.20691,-1.47341],[46.20669,-1.47323],[46.20624,-1.4726],[46.20619,-1.47255],[46.20596,-1.47249],[46.20591,-1.47246],[46.20588,-1.47242],[46.20574,-1.47161],[46.20566,-1.47128],[46.20615,-1.47096],[46.20646,-1.47073],[46.20674,-1.47061],[46.20696,-1.47055],[46.20724,-1.4705],[46.20743,-1.47042],[46.2081,-1.46984],[46.208667,-1.4694],[46.209233,-1.46896],[46.2098,-1.46852],[46.20995,-1.46835],[46.21001,-1.46818],[46.21008,-1.46788],[46.2103,-1.46747],[46.21048,-1.46693],[46.21054,-1.46649],[46.21059,-1.46592],[46.210635,-1.46524],[46.21068,-1.46456],[46.21083,-1.4634],[46.21102,-1.46245],[46.21121,-1.4615],[46.21122,-1.46128],[46.2112,-1.46093],[46.21121,-1.46053],[46.21119,-1.4602],[46.21102,-1.46016],[46.21093,-1.45971],[46.21077,-1.45852],[46.210535,-1.457335],[46.2103,-1.45615],[46.21017,-1.45577],[46.21001,-1.45516],[46.2096,-1.45404],[46.20958,-1.4538],[46.20953,-1.45363],[46.209177,-1.452563],[46.208823,-1.451497],[46.20847,-1.45043],[46.208117,-1.449363],[46.207763,-1.448297],[46.20741,-1.44723],[46.207057,-1.446163],[46.206703,-1.445097],[46.20635,-1.44403],[46.20658,-1.44364],[46.20685,-1.44334],[46.2073,-1.44273],[46.20767,-1.44212],[46.20804,-1.44151],[46.20851,-1.44091],[46.20832,-1.44033],[46.2081,-1.43978],[46.207845,-1.43918],[46.20759,-1.43858],[46.207215,-1.437725],[46.20684,-1.43687],[46.20668,-1.43639],[46.2064,-1.43586],[46.20601,-1.43483],[46.205755,-1.434105],[46.2055,-1.43338],[46.2051,-1.4324],[46.20492,-1.43209],[46.20487,-1.43195],[46.20488,-1.43185],[46.20504,-1.43152],[46.2051,-1.43113],[46.20509,-1.43086],[46.20505,-1.43063],[46.20501,-1.43049],[46.20474,-1.42988],[46.20461,-1.42964],[46.204145,-1.42915],[46.20368,-1.42866],[46.20354,-1.4284],[46.20339,-1.42839],[46.20301,-1.42849],[46.2026,-1.42866],[46.20225,-1.42869],[46.20206,-1.42865],[46.20194,-1.42856],[46.20136,-1.42778],[46.20119,-1.42769],[46.20042,-1.42761],[46.20019,-1.42755],[46.19969,-1.42738],[46.19958,-1.42738],[46.19921,-1.42751],[46.19911,-1.42751],[46.19903,-1.4275],[46.19861,-1.42747],[46.19813,-1.42734],[46.19795,-1.42727],[46.19779,-1.42725],[46.19728,-1.42725],[46.19708,-1.42718],[46.19689,-1.42703],[46.19669,-1.42669],[46.19652,-1.42643],[46.19639,-1.42629],[46.19617,-1.4263],[46.19592,-1.42628],[46.19545,-1.42549],[46.19538,-1.42541],[46.19519,-1.42532],[46.19498,-1.42527],[46.19462,-1.42513],[46.19411,-1.42477],[46.19409,-1.42479],[46.19396,-1.42425],[46.19382,-1.42376],[46.19378,-1.42351],[46.19375,-1.42321],[46.19352,-1.42232],[46.1934,-1.42169],[46.19351,-1.42045],[46.19353,-1.42033],[46.19347,-1.42002],[46.19361,-1.41959],[46.19366,-1.41958],[46.19369,-1.41945],[46.19393,-1.41899],[46.19413,-1.41854],[46.19419,-1.41807],[46.19415,-1.41758],[46.19407,-1.41717],[46.19379,-1.41654],[46.19373,-1.41622],[46.19365,-1.41527],[46.19341,-1.41415],[46.19338,-1.41365],[46.19341,-1.41349],[46.19349,-1.41327],[46.19368,-1.41293],[46.19379,-1.41244],[46.19384,-1.41195],[46.19391,-1.41154],[46.19405,-1.41107],[46.19416,-1.41057],[46.1939,-1.409465],[46.19364,-1.40836],[46.193445,-1.407615],[46.19325,-1.40687],[46.19313,-1.40622],[46.19291,-1.40536],[46.19269,-1.4045],[46.1925,-1.40432],[46.19192,-1.40365],[46.19162,-1.40334],[46.19131,-1.40308],[46.19109,-1.40294],[46.19074,-1.40278],[46.19029,-1.40266],[46.18984,-1.40254],[46.18903,-1.40228],[46.18824,-1.40195],[46.18773,-1.40172],[46.18734,-1.40159],[46.18707,-1.40152],[46.18699,-1.40153],[46.18693,-1.40157],[46.18673,-1.40131],[46.18666,-1.40125],[46.18643,-1.40111],[46.18627,-1.40081],[46.1857,-1.39989],[46.18519,-1.39931],[46.18466,-1.39874],[46.18418,-1.398195],[46.1837,-1.39765],[46.1836,-1.39744],[46.18352,-1.39735],[46.18346,-1.39725],[46.18342,-1.39724],[46.18339,-1.39714],[46.1834,-1.39708],[46.18335,-1.39701],[46.18314,-1.39661],[46.18284,-1.39597],[46.18254,-1.39533],[46.182245,-1.39477],[46.18195,-1.39421],[46.18144,-1.39346],[46.18098,-1.39271],[46.18089,-1.39243],[46.18071,-1.392],[46.18062,-1.39173],[46.18051,-1.39144],[46.18025,-1.39053],[46.18007,-1.38976],[46.18009,-1.38988],[46.17998,-1.38923],[46.17988,-1.38877],[46.17964,-1.387905],[46.1794,-1.38704],[46.17919,-1.385825],[46.17898,-1.38461],[46.17881,-1.38423],[46.17837,-1.38338],[46.1782,-1.38319],[46.17772,-1.38277],[46.17732,-1.38229],[46.17686,-1.381815],[46.1764,-1.38134],[46.17625,-1.38115],[46.17611,-1.38091],[46.17602,-1.3807],[46.17607,-1.38002],[46.17593,-1.37949],[46.17554,-1.3786],[46.17615,-1.37778],[46.17636,-1.37741],[46.17655,-1.37702],[46.176925,-1.37642],[46.1773,-1.37582],[46.17763,-1.37555],[46.17801,-1.37528],[46.17856,-1.37494],[46.17866,-1.37481],[46.17872,-1.37471],[46.17865,-1.37453],[46.17864,-1.37441],[46.17859,-1.37433],[46.17852,-1.37421],[46.17859,-1.37397],[46.17871,-1.37389],[46.17876,-1.37381],[46.17853,-1.37339],[46.17852,-1.37328],[46.17854,-1.37314],[46.17848,-1.37264],[46.17851,-1.37202],[46.17846,-1.37185],[46.17794,-1.37121],[46.17774,-1.37085],[46.17733,-1.3705],[46.17693,-1.3703],[46.1767,-1.37023],[46.17659,-1.37017],[46.17645,-1.37006],[46.17634,-1.36987],[46.17609,-1.36921],[46.17601,-1.36904],[46.17575,-1.36867],[46.17512,-1.36808],[46.17443,-1.36758],[46.17424,-1.36738],[46.17403,-1.36709],[46.17371,-1.3665],[46.17349,-1.36613],[46.173135,-1.36562],[46.17278,-1.36511],[46.1725,-1.3648],[46.1719,-1.36423],[46.171455,-1.36374],[46.17101,-1.36325],[46.17056,-1.36291],[46.17017,-1.36267],[46.16954,-1.36233],[46.16907,-1.36204],[46.16886,-1.36187],[46.16852,-1.36152],[46.1681,-1.3608],[46.16763,-1.3597],[46.167235,-1.358815],[46.16684,-1.35793],[46.16675,-1.35765],[46.16647,-1.357075],[46.16619,-1.3565],[46.16593,-1.356],[46.16558,-1.355275],[46.16523,-1.35455],[46.16503,-1.35397],[46.16487,-1.35287],[46.16464,-1.35203],[46.164145,-1.351135],[46.16365,-1.35024],[46.16328,-1.34947],[46.16291,-1.3487],[46.16267,-1.34823],[46.16248,-1.34728],[46.16242,-1.34711],[46.16233,-1.34699],[46.16217,-1.34677],[46.1619,-1.34634],[46.161655,-1.345545],[46.16141,-1.34475],[46.16121,-1.3439],[46.16115,-1.3435],[46.16103,-1.34314],[46.16089,-1.34287],[46.16056,-1.34201],[46.16037,-1.34122],[46.1603,-1.34077],[46.16016,-1.339664],[46.16002,-1.338558],[46.15988,-1.337452],[46.15974,-1.336346],[46.1596,-1.33524],[46.15953,-1.33477],[46.15951,-1.3344],[46.15953,-1.3335],[46.15964,-1.33282],[46.15968,-1.3326],[46.15979,-1.33217],[46.15964,-1.33212],[46.1596,-1.3321],[46.15958,-1.33196],[46.1595,-1.33186],[46.15912,-1.33161],[46.1591,-1.33165],[46.15907,-1.33166],[46.1585,-1.33143],[46.1584,-1.33141],[46.158,-1.33136],[46.15772,-1.33136],[46.157235,-1.331535],[46.15675,-1.33171],[46.15597,-1.33201],[46.15551,-1.33222],[46.15547,-1.33211],[46.155,-1.332345],[46.15453,-1.33258],[46.15425,-1.33269],[46.15399,-1.33273],[46.15351,-1.33267],[46.15306,-1.33267],[46.153,-1.33263],[46.15266,-1.33238],[46.15257,-1.33227],[46.15242,-1.33214],[46.15227,-1.33206],[46.15197,-1.33195],[46.1518,-1.332],[46.15169,-1.332],[46.15091,-1.33168],[46.15066,-1.33157],[46.15061,-1.33152],[46.15061,-1.33116],[46.15055,-1.33086],[46.15042,-1.33047],[46.15024,-1.33041],[46.15018,-1.33028],[46.15021,-1.33007],[46.15018,-1.32996],[46.15012,-1.32982],[46.15003,-1.32972],[46.14977,-1.32901],[46.14973,-1.32825],[46.14991,-1.327185],[46.15009,-1.32612],[46.15002,-1.32511],[46.15,-1.3245],[46.149745,-1.32336],[46.14949,-1.32222],[46.14953,-1.32199],[46.14946,-1.32126],[46.14957,-1.32091],[46.14976,-1.32044],[46.14994,-1.31976],[46.15004,-1.31947],[46.15071,-1.31878],[46.15061,-1.31851],[46.150315,-1.31748],[46.15002,-1.31645],[46.14986,-1.31559],[46.14973,-1.31444],[46.1496,-1.31378],[46.1495,-1.31381],[46.14936,-1.312835],[46.14922,-1.31186],[46.14913,-1.31158],[46.14891,-1.31162],[46.14913,-1.31158],[46.14912,-1.31129],[46.14917,-1.31121],[46.14918,-1.31071],[46.14921,-1.3105],[46.14927,-1.3103],[46.14936,-1.31017],[46.14921,-1.30919],[46.14903,-1.30834],[46.14895,-1.30743],[46.14894,-1.30629],[46.14893,-1.30515],[46.14889,-1.30484],[46.14888,-1.304],[46.14866,-1.30349],[46.14837,-1.30323],[46.14783,-1.30258],[46.147485,-1.30208],[46.14714,-1.30158],[46.14695,-1.30115],[46.14669,-1.30044],[46.14653,-1.29984],[46.14653,-1.29971],[46.14649,-1.29963],[46.146455,-1.29868],[46.14642,-1.29773],[46.14644,-1.29671],[46.14641,-1.29596],[46.14631,-1.29525],[46.1463,-1.29502],[46.14632,-1.29484],[46.14645,-1.29427],[46.14649,-1.29394],[46.14653,-1.29338],[46.14654,-1.29319],[46.1465,-1.29251],[46.14657,-1.29132],[46.14656,-1.29112],[46.14653,-1.29105],[46.14635,-1.29081],[46.14622,-1.29038],[46.1462,-1.29014],[46.14619,-1.28959],[46.14608,-1.28902],[46.14606,-1.28842],[46.14591,-1.2881],[46.14592,-1.28766],[46.14601,-1.28715],[46.14607,-1.28661],[46.14615,-1.28641],[46.14617,-1.28585],[46.14617,-1.28552],[46.14627,-1.28515],[46.14647,-1.28478],[46.14682,-1.28426],[46.14693,-1.28407],[46.14734,-1.28336],[46.14744,-1.28312],[46.14751,-1.28289],[46.14767,-1.28208],[46.14771,-1.28197],[46.14775,-1.28173],[46.14782,-1.28099],[46.14793,-1.2808],[46.14789,-1.28068],[46.14793,-1.2802],[46.14771,-1.27912],[46.14767,-1.27834],[46.1475,-1.277595],[46.14733,-1.27685],[46.14762,-1.27647],[46.14774,-1.2764],[46.14809,-1.27631],[46.14832,-1.27631],[46.1492,-1.27607],[46.14968,-1.2758],[46.15023,-1.27542],[46.15043,-1.27515],[46.15042,-1.27502],[46.15045,-1.27493],[46.15066,-1.27475],[46.15117,-1.27407],[46.15145,-1.27398],[46.1516,-1.27367],[46.15174,-1.27341],[46.15188,-1.27321],[46.15219,-1.27282],[46.15282,-1.27214],[46.153195,-1.2717],[46.15357,-1.27126],[46.153965,-1.27071],[46.15436,-1.27016],[46.154695,-1.26957],[46.15503,-1.26898],[46.15518,-1.26878],[46.1553,-1.26875],[46.15585,-1.267765],[46.1564,-1.26678],[46.15649,-1.26678],[46.15661,-1.26661],[46.15664,-1.26634],[46.15669,-1.26624],[46.1568,-1.26605],[46.1569,-1.26576],[46.157,-1.26556],[46.15711,-1.26546],[46.15721,-1.26532],[46.15732,-1.26521],[46.15752,-1.26529],[46.15766,-1.26492],[46.15787,-1.26429],[46.15808,-1.26366],[46.15825,-1.26322],[46.1584,-1.26299],[46.15873,-1.26261],[46.15929,-1.2621],[46.15948,-1.26204],[46.15964,-1.26191],[46.15968,-1.26182],[46.15996,-1.26176],[46.16033,-1.26152],[46.16043,-1.26153],[46.16056,-1.26163],[46.16072,-1.26184],[46.16082,-1.26202],[46.16075,-1.26218],[46.1609,-1.2623],[46.16119,-1.26153],[46.16137,-1.26126],[46.16147,-1.26102],[46.16155,-1.26088],[46.16194,-1.26041],[46.16203,-1.26027],[46.16239,-1.2593],[46.16275,-1.2584],[46.16278,-1.25844],[46.16304,-1.2581],[46.16313,-1.25784],[46.16337,-1.25736],[46.1634,-1.25722],[46.16333,-1.25709],[46.16311,-1.25679],[46.16308,-1.25687],[46.16314,-1.25696],[46.163535,-1.25646],[46.16393,-1.25596],[46.16426,-1.255455],[46.16459,-1.25495],[46.16499,-1.25429],[46.16539,-1.25363],[46.16571,-1.25309],[46.16603,-1.25255],[46.16634,-1.25199],[46.16665,-1.25143],[46.167047,-1.25067],[46.167443,-1.24991],[46.16784,-1.24915],[46.16826,-1.24827],[46.16868,-1.24739],[46.169015,-1.24663],[46.16935,-1.24587],[46.169795,-1.2448],[46.17024,-1.24373],[46.170485,-1.243105],[46.17073,-1.24248],[46.171075,-1.241545],[46.17142,-1.24061],[46.171685,-1.2398],[46.17195,-1.23899],[46.172205,-1.238175],[46.17246,-1.23736],[46.1727,-1.236545],[46.17294,-1.23573],[46.17312,-1.235055],[46.1733,-1.23438],[46.17352,-1.233487],[46.17374,-1.232593],[46.17396,-1.2317],[46.17411,-1.231025],[46.17426,-1.23035],[46.17443,-1.229485],[46.1746,-1.22862],[46.17476,-1.227703],[46.17492,-1.226787],[46.17508,-1.22587],[46.175205,-1.225005],[46.17533,-1.22414],[46.17545,-1.223195],[46.17557,-1.22225],[46.1756,-1.22194],[46.17559,-1.22163],[46.17548,-1.22082],[46.17534,-1.22021],[46.17522,-1.21977],[46.17519,-1.21974],[46.17508,-1.21967],[46.17497,-1.21963],[46.174355,-1.21963],[46.17374,-1.21963],[46.17361,-1.21961],[46.17314,-1.2195],[46.17304,-1.21946],[46.17292,-1.2192],[46.1729,-1.21906],[46.17282,-1.21886],[46.1728,-1.21872],[46.17271,-1.21838],[46.17265,-1.21824],[46.17253,-1.21818],[46.1724,-1.21794],[46.1724,-1.21771],[46.17245,-1.21753],[46.1725,-1.21746],[46.17252,-1.2174],[46.17253,-1.21729],[46.1725,-1.21692],[46.17235,-1.21597],[46.1722,-1.21502],[46.17205,-1.21407],[46.172,-1.21348],[46.17191,-1.21303],[46.17185,-1.21295],[46.17183,-1.21289],[46.17182,-1.21277],[46.17187,-1.21266],[46.1718,-1.21245],[46.1717,-1.211805],[46.1716,-1.21116],[46.171422,-1.210058],[46.171243,-1.208957],[46.171065,-1.207855],[46.170887,-1.206753],[46.170708,-1.205652],[46.17053,-1.20455],[46.17049,-1.20447],[46.17042,-1.20442],[46.17051,-1.2042],[46.17046,-1.20415],[46.1703,-1.20327],[46.17018,-1.20285],[46.17013,-1.20276],[46.16988,-1.20225],[46.16968,-1.20197],[46.169315,-1.200985],[46.16895,-1.2],[46.16849,-1.19894],[46.16842,-1.19851],[46.16826,-1.19801],[46.168,-1.19744],[46.16774,-1.19687],[46.1675,-1.19615],[46.16726,-1.19506],[46.16731,-1.19507],[46.16713,-1.19425],[46.167065,-1.19354],[46.167,-1.19283],[46.16696,-1.19267],[46.16681,-1.192],[46.16675,-1.19177],[46.16658,-1.1914],[46.16656,-1.1912],[46.1664,-1.19095],[46.16615,-1.189835],[46.1659,-1.18872],[46.16585,-1.18869],[46.16574,-1.18815],[46.16568,-1.18805],[46.16562,-1.18783],[46.16562,-1.18761],[46.16555,-1.18726],[46.16536,-1.18641],[46.16517,-1.18556],[46.16497,-1.18454],[46.16487,-1.18384],[46.16485,-1.18354],[46.16491,-1.18351],[46.16492,-1.18343],[46.16486,-1.18335],[46.164705,-1.182635],[46.16455,-1.18192],[46.16458,-1.18191],[46.1646,-1.18184],[46.16457,-1.18176],[46.16456,-1.18152],[46.16457,-1.18096],[46.16457,-1.18066],[46.1646,-1.18042],[46.1646,-1.17961],[46.1646,-1.1788],[46.164425,-1.177775],[46.16425,-1.17675],[46.16422,-1.17672],[46.16415,-1.17614],[46.16401,-1.1761],[46.16366,-1.17615],[46.16343,-1.17614],[46.16337,-1.17611],[46.16328,-1.17611],[46.16317,-1.17612],[46.1631,-1.17616],[46.16221,-1.1762],[46.16176,-1.17618],[46.16162,-1.17612],[46.16141,-1.17607],[46.16138,-1.17608],[46.16134,-1.17615],[46.16125,-1.17591],[46.16118,-1.17534],[46.16117,-1.17512],[46.1611,-1.1746],[46.160927,-1.17353],[46.160753,-1.17246],[46.16058,-1.17139],[46.16061,-1.17116],[46.16055,-1.17103],[46.1605,-1.17099],[46.16049,-1.17093],[46.1603,-1.16971],[46.16011,-1.16849],[46.15992,-1.16727],[46.15973,-1.16605],[46.15954,-1.16483],[46.15935,-1.16361],[46.15916,-1.16239],[46.15897,-1.16117],[46.15878,-1.15995],[46.15858,-1.158803],[46.15838,-1.157657],[46.15818,-1.15651],[46.15791,-1.15551],[46.15781,-1.15493],[46.15781,-1.15473],[46.15784,-1.15449],[46.15803,-1.15378],[46.15805,-1.15362],[46.15777,-1.15346],[46.15735,-1.153775],[46.15693,-1.15409],[46.15666,-1.15436],[46.15662,-1.15418],[46.15663,-1.15402],[46.1567,-1.15392],[46.15635,-1.15417]],"profile":[[0.0,1.6],[0.105,1.7],[0.22,1.9],[0.275,2.2],[0.317,2.5],[0.379,2.9],[0.414,3.5],[0.486,4.1],[0.528,4.7],[0.602,5.2],[0.686,5.6],[0.808,5.9],[0.916,5.9],[0.993,5.9],[1.098,5.8],[1.178,5.7],[1.312,5.5],[1.43,5.4],[1.535,5.3],[1.643,5.2],[1.74,5.1],[1.883,4.9],[2.039,4.7],[2.073,4.5],[2.129,4.1],[2.256,3.8],[2.407,3.3],[2.563,3.0],[2.626,2.8],[2.688,2.5],[2.708,2.2],[2.757,2.1],[2.837,2.0],[2.951,1.9],[3.072,1.9],[3.107,1.9],[3.151,2.1],[3.176,2.2],[3.223,2.2],[3.328,2.3],[3.46,2.4],[3.624,2.5],[3.747,2.5],[3.759,2.3],[3.889,2.3],[3.944,2.3],[4.135,2.3],[4.326,2.2],[4.401,2.2],[4.537,2.2],[4.657,2.2],[4.728,2.2],[4.791,2.3],[4.841,2.2],[4.914,2.2],[4.988,2.1],[5.069,1.9],[5.218,1.8],[5.295,1.7],[5.355,1.5],[5.395,1.4],[5.526,1.2],[5.557,1.1],[5.626,1.1],[5.689,1.0],[5.755,1.0],[5.911,1.0],[5.948,1.0],[5.994,1.0],[6.16,1.1],[6.221,1.1],[6.373,1.2],[6.421,1.3],[6.459,1.5],[6.523,1.6],[6.567,1.8],[6.608,1.9],[6.627,2.1],[6.657,2.3],[6.769,2.5],[6.871,2.9],[6.925,3.1],[7.012,3.3],[7.043,3.4],[7.063,3.4],[7.098,3.2],[7.182,3.0],[7.292,2.7],[7.378,2.4],[7.445,2.0],[7.483,1.9],[7.586,1.8],[7.62,1.8],[7.659,1.7],[7.703,1.6],[7.825,1.5],[7.958,1.5],[8.0,1.5],[8.091,1.5],[8.138,1.5],[8.193,1.4],[8.308,1.4],[8.425,1.3],[8.502,1.3],[8.642,1.2],[8.76,1.2],[8.841,1.2],[8.89,1.2],[8.988,1.3],[9.137,1.3],[9.247,1.3],[9.284,1.3],[9.369,1.4],[9.447,1.6],[9.585,1.7],[9.745,1.9],[9.783,2.1],[9.836,2.3],[9.916,2.4],[10.001,2.5],[10.104,2.5],[10.187,2.4],[10.293,2.4],[10.457,2.4],[10.578,2.3],[10.666,2.1],[10.742,2.0],[10.79,1.9],[10.893,1.9],[10.932,1.8],[10.982,1.8],[11.097,1.8],[11.114,1.9],[11.152,2.1],[11.195,2.3],[11.272,2.3],[11.304,2.3],[11.373,2.2],[11.459,2.2],[11.531,2.1],[11.587,2.0],[11.696,1.9],[11.839,1.9],[11.932,1.8],[11.971,1.8],[12.057,1.9],[12.135,1.9],[12.24,1.9],[12.407,1.9],[12.5,1.9],[12.558,1.8],[12.603,1.8],[12.732,1.7],[12.922,1.6],[13.005,1.5],[13.121,1.4],[13.226,1.3],[13.408,1.5],[13.59,1.5],[13.772,1.5],[13.954,1.6],[14.031,1.6],[14.162,1.7],[14.295,1.8],[14.393,1.8],[14.501,1.8],[14.657,1.9],[14.749,2.0],[14.902,2.0],[15.052,2.1],[15.096,2.1],[15.134,2.1],[15.186,2.1],[15.216,2.2],[15.295,2.1],[15.423,2.1],[15.465,2.0],[15.555,1.8],[15.616,1.7],[15.719,1.6],[15.825,1.5],[15.908,1.4],[15.963,1.3],[15.983,1.3],[16.084,1.4],[16.122,1.4],[16.202,1.6],[16.26,1.7],[16.306,2.0],[16.358,2.2],[16.448,2.4],[16.494,2.6],[16.599,2.7],[16.645,2.7],[16.706,2.6],[16.802,2.5],[16.949,2.4],[16.983,2.2],[17.025,2.0],[17.08,1.9],[17.158,1.9],[17.229,1.9],[17.312,1.8],[17.476,1.8],[17.527,1.8],[17.58,1.7],[17.658,1.7],[17.73,1.8],[17.86,1.9],[18.011,2.0],[18.124,2.3],[18.265,2.5],[18.373,2.8],[18.454,3.1],[18.522,3.4],[18.623,3.7],[18.807,3.8],[18.911,4.0],[18.951,4.2],[18.988,4.5],[19.025,4.7],[19.149,4.9],[19.294,5.1],[19.43,5.2],[19.461,5.3],[19.476,5.3],[19.489,5.3],[19.535,5.1],[19.654,4.8],[19.763,4.5],[19.921,4.2],[19.983,4.0],[20.032,3.8],[20.17,3.6],[20.231,3.6],[20.34,3.9],[20.508,4.2],[20.639,4.7],[20.745,5.1],[20.865,5.6],[20.991,5.9],[21.037,6.2],[21.109,6.2],[21.234,6.1],[21.363,6.2],[21.462,6.2],[21.567,6.2],[21.68,6.2],[21.705,6.5],[21.731,6.7],[21.751,6.9],[21.786,7.0],[21.835,6.7],[21.855,6.7],[21.942,6.9],[22.032,7.1],[22.12,7.4],[22.194,7.8],[22.224,8.1],[22.301,8.7],[22.358,8.9],[22.527,8.7],[22.586,8.4],[22.681,8.4],[22.792,8.2],[22.911,7.9],[23.036,7.6],[23.139,7.3],[23.271,7.1],[23.344,7.3],[23.516,7.4],[23.678,7.5],[23.756,7.8],[23.859,8.2],[23.995,8.9],[24.131,9.6],[24.289,10.3],[24.449,10.8],[24.566,11.0],[24.657,11.1],[24.696,11.1],[24.807,10.9],[24.943,10.6],[25.006,10.4],[25.107,9.9],[25.207,9.4],[25.381,8.7],[25.554,7.9],[25.677,7.1],[25.775,6.3],[25.847,5.6],[25.899,4.9],[25.915,4.6],[25.973,4.3],[25.98,4.2],[26.057,4.0],[26.133,3.9],[26.244,3.7],[26.388,3.5],[26.452,3.3],[26.54,3.1],[26.623,2.9],[26.68,2.8],[26.736,2.7],[26.773,2.6],[26.826,2.5],[26.929,2.6],[26.965,2.7],[27.016,2.7],[27.07,2.7],[27.099,3.0],[27.121,3.5],[27.195,4.0],[27.338,4.3],[27.501,4.6],[27.64,5.0],[27.751,5.5],[27.837,5.9],[27.935,6.2],[28.052,6.6],[28.161,7.0],[28.316,7.5],[28.458,8.0],[28.546,8.4],[28.647,8.6],[28.696,8.7],[28.727,8.5],[28.782,8.4],[28.813,8.3],[28.959,8.2],[29.117,8.0],[29.229,7.9],[29.34,7.7],[29.456,7.5],[29.565,7.2],[29.666,6.6],[29.726,6.0],[29.807,5.5],[29.958,5.1],[30.072,4.8],[30.104,4.6],[30.176,4.4],[30.234,4.4],[30.379,4.4],[30.4,4.2],[30.464,4.1],[30.525,3.9],[30.617,3.8],[30.68,3.7],[30.763,3.8],[30.824,4.0],[30.88,4.4],[30.972,4.6],[31.062,4.6],[31.103,4.5],[31.178,4.3],[31.254,4.1],[31.284,3.8],[31.408,3.5],[31.528,3.4],[31.632,3.4],[31.686,3.6],[31.811,3.8],[31.936,4.1],[31.977,4.2],[32.012,4.3],[32.121,4.5],[32.175,4.5],[32.243,4.5],[32.384,4.5],[32.499,4.6],[32.619,4.8],[32.7,4.9],[32.811,5.0],[32.919,5.1],[32.958,5.3],[32.987,5.5],[33.031,5.6],[33.061,5.8],[33.099,5.9],[33.185,5.7],[33.278,5.6],[33.349,5.4],[33.444,5.2],[33.473,5.2],[33.55,5.0],[33.577,4.7],[33.619,4.7],[33.653,4.6],[33.749,4.6],[33.784,4.6],[33.856,4.3],[34.02,4.0],[34.064,3.9],[34.132,4.3],[34.156,5.1],[34.197,6.5],[34.265,8.6],[34.377,11.3],[34.498,14.8],[34.62,18.9],[34.73,23.1],[34.858,27.1],[35.005,30.8],[35.169,33.8],[35.308,35.8],[35.5,36.8],[35.611,36.9],[35.774,36.0],[35.912,34.5],[36.05,32.4],[36.186,30.0],[36.298,27.5],[36.444,24.9],[36.571,22.3],[36.695,19.6],[36.837,17.0],[36.983,14.6],[37.119,12.4],[37.267,10.4],[37.315,8.8],[37.428,7.7],[37.468,7.1],[37.494,6.9],[37.631,6.9],[37.698,7.1],[37.734,7.4],[37.763,7.7],[37.802,7.9],[37.829,8.1],[37.87,8.2],[37.892,8.0],[37.906,7.8],[38.01,7.7],[38.16,7.6],[38.242,7.8],[38.256,8.2],[38.275,8.2],[38.344,8.3],[38.482,8.5],[38.657,8.8],[38.831,9.2],[38.925,9.6],[38.954,10.0],[39.031,11.0],[39.075,12.3],[39.154,13.4],[39.326,13.8],[39.456,13.9],[39.551,13.9],[39.665,13.6],[39.759,13.0],[39.88,11.9],[39.948,11.3],[40.022,11.3],[40.071,11.8],[40.188,12.5],[40.284,13.2],[40.338,13.9],[40.373,14.6],[40.47,15.3],[40.62,15.6],[40.698,15.8],[40.712,16.0],[40.778,16.1],[40.839,16.3],[40.852,16.8],[40.914,17.4],[40.956,17.9],[41.081,18.5],[41.243,19.0],[41.293,19.5],[41.348,19.9],[41.38,19.9],[41.403,19.7],[41.51,19.5],[41.576,19.2],[41.603,18.5],[41.631,17.6],[41.693,16.6],[41.818,15.5],[41.988,13.8],[42.018,11.8],[42.029,9.9],[42.221,8.1],[42.414,6.9],[42.607,6.0],[42.799,5.0],[42.987,4.6],[43.169,4.7],[43.297,4.8],[43.332,4.9],[43.403,4.9],[43.489,4.7],[43.578,4.6],[43.605,4.5],[43.659,4.3]],"kmMarkers":[{"km":1,"lat":46.236916,"lon":-1.560706,"ele":5.9},{"km":2,"lat":46.22988,"lon":-1.552831,"ele":4.8},{"km":3,"lat":46.226527,"lon":-1.541334,"ele":1.9},{"km":4,"lat":46.223337,"lon":-1.532104,"ele":2.3},{"km":5,"lat":46.221043,"lon":-1.524012,"ele":2.0},{"km":6,"lat":46.214358,"lon":-1.516433,"ele":1.0},{"km":7,"lat":46.208101,"lon":-1.515739,"ele":3.3},{"km":8,"lat":46.207089,"lon":-1.507304,"ele":1.5},{"km":9,"lat":46.2032,"lon":-1.496835,"ele":1.3},{"km":10,"lat":46.201957,"lon":-1.485043,"ele":2.5},{"km":11,"lat":46.206236,"lon":-1.474158,"ele":1.8},{"km":12,"lat":46.210242,"lon":-1.467578,"ele":1.8},{"km":13,"lat":46.210025,"lon":-1.455217,"ele":1.6},{"km":14,"lat":46.206627,"lon":-1.443588,"ele":1.6},{"km":15,"lat":46.205339,"lon":-1.432986,"ele":2.1},{"km":16,"lat":46.198874,"lon":-1.427489,"ele":1.3},{"km":17,"lat":46.193534,"lon":-1.419823,"ele":2.1},{"km":18,"lat":46.193481,"lon":-1.407751,"ele":2.0},{"km":19,"lat":46.186634,"lon":-1.401234,"ele":4.6},{"km":20,"lat":46.180645,"lon":-1.391804,"ele":4.0},{"km":21,"lat":46.176339,"lon":-1.381263,"ele":6.0},{"km":22,"lat":46.178159,"lon":-1.371479,"ele":7.0},{"km":23,"lat":46.171266,"lon":-1.363532,"ele":7.7},{"km":24,"lat":46.165209,"lon":-1.354489,"ele":8.9},{"km":25,"lat":46.161052,"lon":-1.343207,"ele":10.4},{"km":26,"lat":46.158898,"lon":-1.33159,"ele":4.1},{"km":27,"lat":46.150591,"lon":-1.331066,"ele":2.7},{"km":28,"lat":46.150331,"lon":-1.31917,"ele":6.5},{"km":29,"lat":46.148983,"lon":-1.307806,"ele":8.1},{"km":30,"lat":46.146418,"lon":-1.296172,"ele":5.0},{"km":31,"lat":46.146981,"lon":-1.283982,"ele":4.6},{"km":32,"lat":46.150569,"lon":-1.274828,"ele":4.3},{"km":33,"lat":46.156852,"lon":-1.265899,"ele":5.5},{"km":34,"lat":46.162658,"lon":-1.25863,"ele":4.0},{"km":35,"lat":46.167814,"lon":-1.2492,"ele":30.7},{"km":36,"lat":46.172275,"lon":-1.23795,"ele":33.2},{"km":37,"lat":46.175112,"lon":-1.225649,"ele":14.3},{"km":38,"lat":46.17237,"lon":-1.216095,"ele":7.7},{"km":39,"lat":46.17037,"lon":-1.203655,"ele":10.7},{"km":40,"lat":46.166817,"lon":-1.192033,"ele":11.2},{"km":41,"lat":46.1646,"lon":-1.179847,"ele":18.1},{"km":42,"lat":46.160601,"lon":-1.171231,"ele":13.1},{"km":43,"lat":46.158551,"lon":-1.158634,"ele":4.6}]}</script>
+<script id="weather-data" type="application/json">{"latitude":46.19,"longitude":-1.36,"utc_offset_seconds":7200,"timezone":"Europe/Paris","hourly":{"time":["2026-05-10T00:00","2026-05-10T01:00","2026-05-10T02:00","2026-05-10T03:00","2026-05-10T04:00","2026-05-10T05:00","2026-05-10T06:00","2026-05-10T07:00","2026-05-10T08:00","2026-05-10T09:00","2026-05-10T10:00","2026-05-10T11:00","2026-05-10T12:00","2026-05-10T13:00","2026-05-10T14:00","2026-05-10T15:00","2026-05-10T16:00","2026-05-10T17:00","2026-05-10T18:00","2026-05-10T19:00","2026-05-10T20:00","2026-05-10T21:00","2026-05-10T22:00","2026-05-10T23:00"],"temperature_2m":[17.6,17.5,17.2,16.9,16.6,16.7,15.7,15.0,14.7,14.8,15.7,16.6,17.5,18.3,18.9,19.1,19.0,18.7,18.3,17.8,17.3,16.7,16.0,15.5],"apparent_temperature":[17.8,18.7,17.3,16.1,15.9,15.9,15.2,14.2,13.6,13.7,14.9,16.1,16.9,17.4,17.9,18.2,18.3,18.0,17.4,17.2,16.9,16.3,15.6,15.0],"precipitation_probability":[24,30,33,34,34,34,33,32,33,35,38,41,45,48,50,52,53,54,54,54,53,51,48,44],"precipitation":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.2,0.2,0.2,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"weather_code":[3,3,3,3,3,3,3,3,3,3,3,3,51,51,51,0,0,0,0,0,0,0,0,0],"wind_speed_10m":[8.9,2.9,10.8,15.0,14.4,14.5,12.3,12.6,13.6,13.1,12.0,11.0,11.8,15.3,18.5,19.2,18.6,17.8,16.5,14.5,13.1,12.8,13.3,13.1],"wind_direction_10m":[69,83,182,125,93,97,107,127,140,139,140,148,171,192,204,210,217,222,224,225,227,232,237,241],"wind_gusts_10m":[9.7,9.4,17.6,20.9,21.6,21.2,21.4,20.9,23.1,23.0,23.8,25.2,29.2,34.2,37.8,38.9,38.5,38.2,38.2,37.8,36.4,33.1,28.8,25.2],"cloud_cover":[100,100,100,100,99,95,100,100,99,98,96,88,70,47,28,15,6,0,0,0,0,5,11,14],"relative_humidity_2m":[82,84,86,84,85,85,89,89,88,86,85,82,78,74,71,71,72,74,77,81,84,88,91,94],"uv_index":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.35,1.2,0.65,2.95,1.6,1.6,6.1,5.2,6.3,4.6,4.0,1.95,1.15,0.55,0.25,0.05]},"daily":{"time":["2026-05-10"],"sunrise":["2026-05-10T06:38"],"sunset":["2026-05-10T21:24"],"temperature_2m_max":[19.1],"temperature_2m_min":[14.7],"precipitation_sum":[0.6],"wind_speed_10m_max":[19.2],"uv_index_max":[6.3],"weather_code":[51]}}</script>
+
+<script>
+// ====== Load data ======
+const ROUTE = JSON.parse(document.getElementById('route-data').textContent);
+const WEATHER = JSON.parse(document.getElementById('weather-data').textContent);
+
+// ====== Helpers ======
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+function fmtSeconds(s) {
+  s = Math.round(s);
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h > 0) return `${h}h${String(m).padStart(2,'0')}'${String(sec).padStart(2,'0')}"`;
+  return `${m}'${String(sec).padStart(2,'0')}"`;
+}
+function fmtPace(s) {
+  s = Math.round(s);
+  const m = Math.floor(s/60), sec = s%60;
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+function parsePace(str) {
+  const m = String(str).match(/(\d+)[:.,](\d+)/);
+  if (!m) return null;
+  return parseInt(m[1])*60 + parseInt(m[2]);
+}
+function addSeconds(hhmm, sec) {
+  const [h,m] = hhmm.split(':').map(Number);
+  let total = h*3600 + m*60 + sec;
+  total = ((total % 86400) + 86400) % 86400;
+  const H = Math.floor(total/3600), M = Math.floor((total%3600)/60), S = total%60;
+  return `${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')}:${String(S).padStart(2,'0')}`;
+}
+
+// ====== Stats ======
+const stats = [
+  { k: 'Distance', v: ROUTE.totalKm.toFixed(2), u: 'km' },
+  { k: 'Dénivelé +', v: Math.round(ROUTE.elevationGain), u: 'm' },
+  { k: 'Dénivelé −', v: Math.round(ROUTE.elevationLoss), u: 'm' },
+  { k: 'Alt. min/max', v: `${ROUTE.elevationMin.toFixed(0)} / ${ROUTE.elevationMax.toFixed(0)}`, u: 'm' },
+  { k: 'Points GPS', v: ROUTE.totalPoints, u: '' },
+  { k: 'Type', v: 'Point-à-point', u: '' },
+];
+$('#stats').innerHTML = stats.map(s => `
+  <div class="stat">
+    <div class="k">${s.k}</div>
+    <div class="v">${s.v}<small>${s.u}</small></div>
+  </div>
+`).join('');
+
+// Profile meta line (D+/D-/Pic) reads from ROUTE
+$('#profileMeta').textContent = `D+ ${Math.round(ROUTE.elevationGain)} m · D− ${Math.round(ROUTE.elevationLoss)} m · Pic ${ROUTE.elevationMax.toFixed(1)} m (Pont)`;
+
+// ====== Map ======
+const map = L.map('map', { zoomControl: true, scrollWheelZoom: true });
+const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '© OpenStreetMap France'
+}).addTo(map);
+
+map.fitBounds(ROUTE.bbox, { padding: [20, 20] });
+
+// ---- Pre-compute cumulative distance + km buckets for colored segments ----
+function haversineM(lat1, lon1, lat2, lon2) {
+  const R = 6371000.0;
+  const p1 = lat1 * Math.PI/180, p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1) * Math.PI/180, dl = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+const TRACK_CUM = (() => {
+  const out = [0];
+  for (let i = 1; i < ROUTE.track.length; i++) {
+    out.push(out[i-1] + haversineM(ROUTE.track[i-1][0], ROUTE.track[i-1][1], ROUTE.track[i][0], ROUTE.track[i][1]));
+  }
+  return out;
+})();
+const TRACK_BY_KM = (() => {
+  const totalK = Math.ceil(ROUTE.totalKm);
+  const buckets = Array.from({length: totalK}, () => []);
+  for (let i = 0; i < ROUTE.track.length; i++) {
+    const km = Math.min(totalK - 1, Math.floor(TRACK_CUM[i] / 1000));
+    buckets[km].push(ROUTE.track[i]);
+  }
+  // Stitch: prepend last point of previous segment to current to avoid gaps
+  for (let i = 1; i < buckets.length; i++) {
+    if (buckets[i-1].length && buckets[i].length) {
+      buckets[i].unshift(buckets[i-1][buckets[i-1].length-1]);
+    }
+  }
+  return buckets;
+})();
+
+// Layers for the 3 views
+const layerRoute = L.layerGroup();
+const layerEffort = L.layerGroup();
+const layerWind = L.layerGroup();
+
+// Default route layer (white halo + orange line)
+L.polyline(ROUTE.track, { color: 'white', weight: 7, opacity: 0.5 }).addTo(layerRoute);
+L.polyline(ROUTE.track, { color: '#ff5a1f', weight: 3.5, opacity: 1 }).addTo(layerRoute);
+layerRoute.addTo(map);
+
+function effortColor(deltaSec) {
+  if (deltaSec <= -8) return '#2dd17a';   // strong tailwind / descent boost
+  if (deltaSec <= 3)  return '#9ad27a';   // easy
+  if (deltaSec <= 12) return '#ffd24a';   // mild penalty
+  if (deltaSec <= 25) return '#ff9d4a';   // moderate penalty
+  if (deltaSec <= 45) return '#ff7250';   // strong penalty
+  return '#ff3b3b';                        // severe
+}
+function effortLabel(deltaSec) {
+  if (deltaSec <= -8) return 'Très facile';
+  if (deltaSec <= 3)  return 'Facile';
+  if (deltaSec <= 12) return 'Modéré';
+  if (deltaSec <= 25) return 'Soutenu';
+  if (deltaSec <= 45) return 'Difficile';
+  return 'Très difficile';
+}
+
+// Start / End markers
+const startIcon = L.divIcon({ className: '', html: '<div class="km-icon start-icon">🏁</div>', iconSize: [22,22], iconAnchor: [11,11] });
+const endIcon = L.divIcon({ className: '', html: '<div class="km-icon end-icon">🏆</div>', iconSize: [22,22], iconAnchor: [11,11] });
+L.marker([ROUTE.start.lat, ROUTE.start.lon], { icon: startIcon }).addTo(map).bindPopup(`<b>Départ</b><br>Saint-Clément-des-Baleines<br>Alt. ${ROUTE.start.ele} m`);
+L.marker([ROUTE.end.lat, ROUTE.end.lon], { icon: endIcon }).addTo(map).bindPopup(`<b>Arrivée</b><br>La Rochelle<br>Alt. ${ROUTE.end.ele} m`);
+
+// Km markers (every 5 km on map to avoid clutter, all on hover/click)
+const kmGroup = L.layerGroup().addTo(map);
+ROUTE.kmMarkers.forEach(k => {
+  const major = k.km % 5 === 0;
+  const html = `<div class="km-icon" style="${major ? '' : 'width:16px;height:16px;line-height:16px;font-size:9px;background:#1f2730;'}">${k.km}</div>`;
+  L.marker([k.lat, k.lon], {
+    icon: L.divIcon({ className: '', html, iconSize: major ? [22,22] : [16,16], iconAnchor: major ? [11,11] : [8,8] })
+  }).bindPopup(`<b>Km ${k.km}</b><br>Alt. ${k.ele} m`).addTo(kmGroup);
+});
+
+// Hover marker (shared with elevation chart)
+const hoverIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.3);"></div>', iconSize: [14,14], iconAnchor: [7,7] });
+let hoverMarker = null;
+
+function highlightOnMap(km) {
+  // find nearest profile point and corresponding lat/lon (from km markers)
+  if (km <= 0) {
+    if (hoverMarker) { map.removeLayer(hoverMarker); hoverMarker = null; }
+    return;
+  }
+  const idx = Math.max(0, Math.min(ROUTE.kmMarkers.length-1, Math.round(km)-1));
+  const k = ROUTE.kmMarkers[idx];
+  if (!k) return;
+  if (!hoverMarker) {
+    hoverMarker = L.marker([k.lat, k.lon], { icon: hoverIcon, interactive: false }).addTo(map);
+  } else {
+    hoverMarker.setLatLng([k.lat, k.lon]);
+  }
+  $('#mapMeta').textContent = `Km ${k.km} · ${k.ele.toFixed(1)} m d'altitude`;
+}
+
+// ====== Elevation chart ======
+const profileData = ROUTE.profile.map(p => ({ x: p[0], y: p[1] }));
+const elevCtx = document.getElementById('elevation').getContext('2d');
+const elevChart = new Chart(elevCtx, {
+  type: 'line',
+  data: {
+    datasets: [{
+      label: 'Altitude (m)',
+      data: profileData,
+      borderColor: '#ff5a1f',
+      backgroundColor: (ctx) => {
+        const c = ctx.chart.ctx;
+        const g = c.createLinearGradient(0, 0, 0, 240);
+        g.addColorStop(0, 'rgba(255,90,31,0.5)');
+        g.addColorStop(1, 'rgba(255,90,31,0.0)');
+        return g;
+      },
+      fill: true, borderWidth: 1.5, pointRadius: 0,
+      tension: 0.2,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { type: 'linear', min: 0, max: ROUTE.totalKm, ticks: { color: '#9aa5b1', callback: (v) => v + ' km' }, grid: { color: '#2a3340' }, title: { display: false } },
+      y: { ticks: { color: '#9aa5b1', callback: (v) => v + ' m' }, grid: { color: '#2a3340' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: (items) => `Km ${items[0].parsed.x.toFixed(2)}`,
+          label: (item) => `Altitude : ${item.parsed.y.toFixed(1)} m`
+        }
+      }
+    },
+    onHover: (e, items) => {
+      if (items && items.length) highlightOnMap(items[0].element.parsed.x);
+    }
+  }
+});
+
+// ====== Pace calculator with terrain & wind adjustments ======
+const paceRange = $('#paceRange');
+const paceText = $('#paceText');
+const startTime = $('#startTime');
+const useElev = $('#useElev'), useWind = $('#useWind'), useFatigue = $('#useFatigue');
+const fatigueLevel = $('#fatigueLevel');
+
+function getPace() { return parseInt(paceRange.value, 10); }
+
+// Pre-compute per-km segment data: grade %, bearing, length
+function bearingDeg(lat1, lon1, lat2, lon2) {
+  const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
+  const Δλ = (lon2 - lon1) * Math.PI/180;
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
+}
+
+const SEGMENTS = (() => {
+  const segs = [];
+  let prev = { lat: ROUTE.start.lat, lon: ROUTE.start.lon, ele: ROUTE.start.ele, km: 0 };
+  const list = ROUTE.kmMarkers.slice();
+  list.push({ km: ROUTE.totalKm, lat: ROUTE.end.lat, lon: ROUTE.end.lon, ele: ROUTE.end.ele });
+  list.forEach(k => {
+    const segLen = k.km - prev.km; // km
+    const dEle = k.ele - prev.ele; // m
+    const grade = segLen > 0 ? (dEle / (segLen * 1000)) * 100 : 0; // %
+    const bearing = bearingDeg(prev.lat, prev.lon, k.lat, k.lon);
+    segs.push({ kmEnd: k.km, kmStart: prev.km, len: segLen, grade, bearing, lat: k.lat, lon: k.lon, ele: k.ele });
+    prev = k;
+  });
+  return segs;
+})();
+
+// Interpolate weather at a given hour (decimal, e.g. 9.5 = 9h30)
+function weatherAt(hourFloat) {
+  const h = Math.max(0, Math.min(23, hourFloat));
+  const i0 = Math.floor(h), i1 = Math.min(23, i0+1);
+  const t = h - i0;
+  const ws = WEATHER.hourly.wind_speed_10m[i0] * (1-t) + WEATHER.hourly.wind_speed_10m[i1] * t;
+  const wd = WEATHER.hourly.wind_direction_10m[i0]; // direction don't interpolate (could wrap)
+  const temp = WEATHER.hourly.temperature_2m[i0] * (1-t) + WEATHER.hourly.temperature_2m[i1] * t;
+  return { speed: ws, direction: wd, temp };
+}
+
+// Grade adjustment factor (Strava GAP-like, simplified Minetti)
+function gradeFactor(grade) {
+  // Cap to reasonable range
+  const g = Math.max(-25, Math.min(25, grade));
+  if (g >= 0) return 1 + 0.033 * g;          // +3.3% per +1% grade
+  // descent: small benefit, then penalty for very steep
+  if (g >= -10) return 1 + 0.015 * g;        // -1.5% per -1% grade up to -10%
+  return 1 - 0.15 + 0.005 * (g + 10);        // beyond -10% the benefit reverses
+}
+
+// Wind adjustment: returns multiplicative factor.
+// windSpeed km/h, windDir = direction wind is FROM, courseBearing = direction running TO.
+function windFactor(windSpeed, windDir, courseBearing) {
+  // Wind goes TO (windDir + 180). Runner goes TO (courseBearing).
+  // tailwind component = windSpeed * cos(angle between (windDir+180) and courseBearing)
+  const angle = ((windDir + 180) - courseBearing) * Math.PI / 180;
+  const tail = windSpeed * Math.cos(angle); // positive = tailwind, negative = headwind
+  if (tail >= 0) return 1 - 0.0025 * tail;   // tailwind: ~0.25% boost per km/h (capped naturally)
+  return 1 + 0.005 * (-tail);                 // headwind: 0.5% loss per km/h
+}
+
+// Fatigue factor: 0% pre-25 km, then linearly grows to fatigueLvl% at finish
+function fatigueFactor(km, fatigueLvl) {
+  if (km <= 25) return 1;
+  const t = Math.max(0, Math.min(1, (km - 25) / (ROUTE.totalKm - 25)));
+  return 1 + (fatigueLvl / 100) * t;
+}
+
+function windRelative(windSpeed, windDir, courseBearing) {
+  // Returns object describing relative wind for display
+  const angle = ((windDir + 180) - courseBearing + 360) % 360;
+  // angle 0 = pure tailwind, 180 = pure headwind
+  const cos = Math.cos(angle * Math.PI/180);
+  const tail = windSpeed * cos;
+  let label;
+  if (windSpeed < 8) label = '·';
+  else if (cos > 0.7) label = '↑ dos';
+  else if (cos < -0.7) label = '↓ face';
+  else if (cos > 0.2) label = '↗';
+  else if (cos < -0.2) label = '↘';
+  else label = '→ côté';
+  return { tail, label };
+}
+
+function renderSplits() {
+  const basePace = getPace();
+  const startStr = startTime.value || '09:00';
+  const [sh, sm] = startStr.split(':').map(Number);
+  const startHour = sh + sm/60;
+  paceText.value = fmtPace(basePace);
+
+  const fatigueLvl = useFatigue.checked ? parseInt(fatigueLevel.value, 10) : 0;
+  $('#fatigueLevelLabel').textContent = parseInt(fatigueLevel.value, 10) + '%';
+
+  const tbody = $('#splitsTable tbody');
+  let rows = '';
+  let cumSec = 0;
+  let baseTotalSec = basePace * ROUTE.totalKm;
+  let elevOnlySec = 0, windOnlySec = 0, fatigueOnlySec = 0;
+  LAST_SPLITS = [];
+
+  SEGMENTS.forEach((seg, i) => {
+    // Adjusted pace for this km
+    const fGrade = useElev.checked ? gradeFactor(seg.grade) : 1;
+    // Compute hour-of-day at midpoint of this segment for weather lookup
+    const segMidSec = cumSec + (basePace * seg.len) / 2;
+    const segMidHour = (startHour + segMidSec / 3600) % 24;
+    const w = weatherAt(segMidHour);
+    const fWind = useWind.checked ? windFactor(w.speed, w.direction, seg.bearing) : 1;
+    const fFatigue = fatigueFactor(seg.kmEnd, fatigueLvl);
+
+    const adjustedPace = basePace * fGrade * fWind * fFatigue;
+    const segSec = adjustedPace * seg.len;
+    const segPace = adjustedPace; // shown per km
+
+    // Track per-effect contribution (relative to base)
+    const baseSegSec = basePace * seg.len;
+    elevOnlySec += baseSegSec * (fGrade - 1);
+    windOnlySec += baseSegSec * (fGrade) * (fWind - 1);
+    fatigueOnlySec += baseSegSec * (fGrade) * (fWind) * (fFatigue - 1);
+
+    cumSec += segSec;
+    const arrival = addSeconds(startStr, cumSec).slice(0,5);
+    const isMile = seg.kmEnd % 5 === 0 && seg.kmEnd !== ROUTE.totalKm;
+    const isFinal = i === SEGMENTS.length - 1;
+    const labelKm = isFinal ? `🏆 ${ROUTE.totalKm.toFixed(2)}` : (seg.kmEnd === Math.round(seg.kmEnd) ? seg.kmEnd : seg.kmEnd.toFixed(2));
+
+    // Row class for terrain coloring
+    let rowClass = '';
+    if (seg.grade >= 4) rowClass = 'up steep';
+    else if (seg.grade >= 1.5) rowClass = 'up';
+    else if (seg.grade <= -2) rowClass = 'down';
+    if (isMile) rowClass += ' highlight';
+
+    // Conditions cell: short tag (grade + wind label)
+    const wr = windRelative(w.speed, w.direction, seg.bearing);
+    const gradeStr = seg.grade >= 0.3 ? `↗ ${seg.grade.toFixed(1)}%` : (seg.grade <= -0.3 ? `↘ ${seg.grade.toFixed(1)}%` : 'plat');
+    const windStr = useWind.checked && w.speed >= 8 ? `${wr.label} ${w.speed.toFixed(0)}` : '';
+
+    const delta = adjustedPace - basePace;
+    const deltaCls = delta > 1 ? 'delta-pos' : (delta < -1 ? 'delta-neg' : 'muted');
+    const deltaStr = (delta >= 0 ? '+' : '') + Math.round(delta) + '"';
+
+    rows += `<tr data-km="${seg.kmEnd}" class="${rowClass}">
+      <td><b>${labelKm}</b></td>
+      <td class="num">${fmtPace(segPace)}</td>
+      <td class="num ${deltaCls}">${deltaStr}</td>
+      <td class="num">${fmtSeconds(cumSec)}</td>
+      <td class="num">${arrival}</td>
+      <td class="cond">${gradeStr}${windStr ? ' · '+windStr : ''}</td>
+    </tr>`;
+    LAST_SPLITS.push({ kmStart: seg.kmStart, kmEnd: seg.kmEnd, len: seg.len, grade: seg.grade, bearing: seg.bearing, lat: seg.lat, lon: seg.lon, ele: seg.ele, adjPace: adjustedPace });
+  });
+  tbody.innerHTML = rows;
+
+  // Top displays
+  $('#totalTime').textContent = fmtSeconds(cumSec);
+  $('#totalTimeBase').textContent = `brut : ${fmtSeconds(baseTotalSec)}`;
+  $('#finishTime').textContent = addSeconds(startStr, cumSec).slice(0,5);
+  const avgPace = cumSec / ROUTE.totalKm;
+  $('#paceAvg').textContent = `allure moy. ${fmtPace(avgPace)}/km`;
+  const speed = 3.6 * 1000 / avgPace;
+  $('#speed').textContent = speed.toFixed(2) + ' km/h';
+  $('#paceEffort').textContent = `effort équiv. ${fmtPace(basePace)} sur plat`;
+
+  // Effect summaries
+  const fmtDelta = (s) => (s >= 0 ? '+' : '') + Math.round(s) + ' s';
+  const cls = (s) => s > 30 ? 'meta-sm warn' : (s < -30 ? 'meta-sm good' : 'meta-sm');
+  $('#elevDelta').textContent = useElev.checked ? fmtDelta(elevOnlySec) : '—';
+  $('#elevDelta').className = cls(elevOnlySec);
+  $('#windDelta').textContent = useWind.checked ? fmtDelta(windOnlySec) : '—';
+  $('#windDelta').className = cls(windOnlySec);
+  $('#fatigueDelta').textContent = useFatigue.checked ? fmtDelta(fatigueOnlySec) : '—';
+  $('#fatigueDelta').className = cls(fatigueOnlySec);
+  const totalDelta = cumSec - baseTotalSec;
+  $('#adjustSummary').textContent = `total : ${fmtDelta(totalDelta)}`;
+
+  // Bind hover/click on rows
+  $$('#splitsTable tbody tr').forEach(tr => {
+    tr.addEventListener('mouseenter', () => highlightOnMap(parseFloat(tr.dataset.km)));
+    tr.addEventListener('click', () => {
+      const km = parseFloat(tr.dataset.km);
+      const idx = Math.max(0, Math.min(ROUTE.kmMarkers.length-1, Math.round(km)-1));
+      const k = ROUTE.kmMarkers[idx] || ROUTE.end;
+      map.flyTo([k.lat, k.lon], 15, { duration: 0.6 });
+    });
+  });
+
+  // Update map layers (effort coloring + wind arrows) using the just-computed splits
+  rebuildMapLayers(LAST_SPLITS, basePace, startStr);
+
+  // Update nutrition card
+  renderNutrition(cumSec, startStr, basePace);
+
+  // Update brief + wind detail
+  renderBrief(cumSec, startStr, basePace);
+  renderWindDetail(LAST_SPLITS, basePace, startStr, windOnlySec);
+}
+
+// ---- Brief panel ----
+function renderBrief(totalSec, startStr, basePace) {
+  $('#briefRun').textContent = fmtSeconds(totalSec);
+  $('#briefArrive').textContent = addSeconds(startStr, totalSec).slice(0,5);
+  $('#briefStart').textContent = startStr.slice(0,5);
+  // Temperature during run
+  const [sh, sm] = startStr.split(':').map(Number);
+  const startHour = sh + sm/60;
+  const endHour = (startHour + totalSec/3600);
+  let temps = [];
+  for (let h = Math.floor(startHour); h <= Math.ceil(endHour); h++) {
+    if (h >= 0 && h <= 23) temps.push(WEATHER.hourly.temperature_2m[h]);
+  }
+  if (temps.length) {
+    const tmin = Math.min(...temps), tmax = Math.max(...temps);
+    $('#briefTemp').textContent = `${tmin.toFixed(0)}–${tmax.toFixed(0)}°C`;
+  }
+  // Avg wind during run
+  let windSpeeds = [];
+  for (let h = Math.floor(startHour); h <= Math.ceil(endHour); h++) {
+    if (h >= 0 && h <= 23) windSpeeds.push(WEATHER.hourly.wind_speed_10m[h]);
+  }
+  if (windSpeeds.length) {
+    const wAvg = windSpeeds.reduce((a,b) => a+b, 0) / windSpeeds.length;
+    const wMax = Math.max(...windSpeeds);
+    const briefWindEl = $('#briefWind');
+    briefWindEl.textContent = `${wAvg.toFixed(0)} km/h`;
+    briefWindEl.className = 'brief-stat ' + (wMax >= 30 ? 'bad' : (wMax >= 20 ? 'warn' : ''));
+  }
+}
+
+// ---- Wind detail card ----
+function classifyWind(angleDeg) {
+  // angleDeg = ((windDir+180) - bearing + 360) % 360
+  // 0 = pure tailwind, 180 = pure headwind, 90 = right cross, 270 = left cross
+  const a = ((angleDeg % 360) + 360) % 360;
+  if (a < 45 || a >= 315) return 'tail';
+  if (a >= 135 && a < 225) return 'head';
+  return 'cross';
+}
+
+function renderWindDetail(splits, basePace, startStr, windOnlySec) {
+  if (!splits || splits.length === 0) return;
+  const [sh, sm] = startStr.split(':').map(Number);
+  const startHour = sh + sm/60;
+
+  // Per-segment wind classification + accumulate stats
+  let cumSec = 0;
+  const segInfo = splits.map(s => {
+    cumSec += s.adjPace * s.len;
+    const midSec = cumSec - s.adjPace * s.len / 2;
+    const hour = (startHour + midSec / 3600) % 24;
+    const w = weatherAt(hour);
+    const angle = ((w.direction + 180) - s.bearing + 360) % 360;
+    const cls = classifyWind(angle);
+    return { ...s, hour, w, angle, cls };
+  });
+
+  // Aggregate sums
+  const totals = { head: 0, tail: 0, cross: 0 };
+  segInfo.forEach(s => totals[s.cls] += s.len);
+  const totalKm = ROUTE.totalKm;
+  const wAvg = segInfo.reduce((a, s) => a + s.w.speed, 0) / segInfo.length;
+  // Find max gust during run window
+  const endHour = (startHour + cumSec/3600);
+  let peakGust = 0, peakHour = 0;
+  for (let h = Math.floor(startHour); h <= Math.ceil(endHour); h++) {
+    if (h < 0 || h > 23) continue;
+    if (WEATHER.hourly.wind_gusts_10m[h] > peakGust) {
+      peakGust = WEATHER.hourly.wind_gusts_10m[h];
+      peakHour = h;
+    }
+  }
+  // Dominant direction
+  const dirSum = { x: 0, y: 0 };
+  segInfo.forEach(s => {
+    const r = s.w.direction * Math.PI / 180;
+    dirSum.x += Math.sin(r) * s.w.speed;
+    dirSum.y += Math.cos(r) * s.w.speed;
+  });
+  const domAngle = (Math.atan2(dirSum.x, dirSum.y) * 180 / Math.PI + 360) % 360;
+  const domCard = dirToCardinal(domAngle);
+
+  // KPIs
+  $('#windAvg').textContent = `${wAvg.toFixed(0)} km/h`;
+  $('#windPeak').textContent = `${peakGust.toFixed(0)} km/h à ${peakHour}h`;
+  $('#windDom').textContent = `de ${domCard} (${domAngle.toFixed(0)}°)`;
+  $('#windCost').textContent = (windOnlySec >= 0 ? '+' : '') + Math.round(windOnlySec / 60) + ' min';
+
+  // Compass SVG
+  $('#windCompass').innerHTML = renderCompass(domAngle, wAvg, segInfo);
+
+  // Exposure bar
+  const pctHead = totals.head / totalKm * 100;
+  const pctCross = totals.cross / totalKm * 100;
+  const pctTail = totals.tail / totalKm * 100;
+  $('#windBar').innerHTML = `
+    ${pctHead > 2 ? `<div class="wind-bar-seg head" style="width:${pctHead}%">↓ Face ${totals.head.toFixed(0)} km</div>` : ''}
+    ${pctCross > 2 ? `<div class="wind-bar-seg cross" style="width:${pctCross}%">→ Côté ${totals.cross.toFixed(0)} km</div>` : ''}
+    ${pctTail > 2 ? `<div class="wind-bar-seg tail" style="width:${pctTail}%">↑ Dos ${totals.tail.toFixed(0)} km</div>` : ''}
+  `;
+
+  // Group consecutive km with same classification into segments
+  const groups = [];
+  segInfo.forEach(s => {
+    const last = groups[groups.length - 1];
+    if (last && last.cls === s.cls) {
+      last.kmEnd = s.kmEnd;
+      last.windSum += s.w.speed;
+      last.count++;
+    } else {
+      groups.push({ kmStart: s.kmStart, kmEnd: s.kmEnd, cls: s.cls, windSum: s.w.speed, count: 1 });
+    }
+  });
+  // Filter out tiny groups (< 1 km), merge into adjacent
+  const clsLabel = { head: '↓ Face', tail: '↑ Dos', cross: '→ Côté' };
+  $('#windSegments').innerHTML = groups.map(g => {
+    const wAvgG = g.windSum / g.count;
+    const len = g.kmEnd - g.kmStart;
+    return `<div class="seg-line">
+      <span class="seg-l"><span class="pill-mini ${g.cls}">${clsLabel[g.cls]}</span> Km ${g.kmStart.toFixed(0)}–${g.kmEnd.toFixed(0)}</span>
+      <span class="seg-r">${len.toFixed(0)} km · vent ${wAvgG.toFixed(0)} km/h</span>
+    </div>`;
+  }).join('');
+
+  // Hourly table for the run window
+  const rows = [];
+  for (let h = Math.floor(startHour); h <= Math.min(23, Math.ceil(endHour)); h++) {
+    if (h < 0) continue;
+    const ws = WEATHER.hourly.wind_speed_10m[h];
+    const wg = WEATHER.hourly.wind_gusts_10m[h];
+    const wd = WEATHER.hourly.wind_direction_10m[h];
+    // Find which km the runner is at this hour
+    const tSec = (h - startHour) * 3600;
+    const kmAt = tSec <= 0 ? 0 : (tSec >= cumSec ? totalKm : kmAtTime(tSec, splits, basePace));
+    // For that segment, classify wind effect
+    let effect = '—';
+    if (tSec >= 0 && tSec <= cumSec) {
+      const seg = segInfo.find(s => s.kmEnd >= kmAt) || segInfo[segInfo.length-1];
+      const a = ((wd + 180) - seg.bearing + 360) % 360;
+      const cls = classifyWind(a);
+      effect = `<span class="pill-mini ${cls}">${clsLabel[cls]}</span> km ${kmAt.toFixed(0)}`;
+    } else if (tSec < 0) effect = '(avant départ)';
+    else effect = '(après arrivée)';
+    rows.push(`<tr>
+      <td>${h}h</td>
+      <td class="num">${ws.toFixed(0)}</td>
+      <td class="num">${wg.toFixed(0)}</td>
+      <td>${dirToCardinal(wd)} (${wd}°)</td>
+      <td>${effect}</td>
+    </tr>`);
+  }
+  $('#windHourlyTable tbody').innerHTML = rows.join('');
+
+  // Tips based on conditions
+  const tips = [];
+  if (totals.head >= 8) tips.push(`<b>${totals.head.toFixed(0)} km de vent de face</b> : économise sur ces tronçons (allure 5–10s/km plus douce, place-toi en abri si peloton).`);
+  if (totals.tail >= 10) tips.push(`<b>${totals.tail.toFixed(0)} km vent dans le dos</b> : profite-en sans trop accélérer (le tail-wind ne baisse pas la fréquence cardiaque autant que tu crois).`);
+  if (peakGust >= 40) tips.push(`<b>Rafales jusqu'à ${peakGust.toFixed(0)} km/h</b> : casquette serrée ou bandeau, lunettes anti-poussière sur les sections côtières.`);
+  if (wAvg >= 20) tips.push('Coupe-vent <b>léger</b> : utile au départ + sur sections face. Range-le dans une ceinture quand tu passes au tail-wind.');
+  if (wAvg < 15) tips.push('Vent modéré, conditions favorables. Pas de stratégie particulière.');
+  $('#windTips').innerHTML = tips.length
+    ? `<b>💡 Stratégie :</b><ul>${tips.map(t => `<li>${t}</li>`).join('')}</ul>`
+    : '<b>💡</b> Conditions calmes, rien de particulier à anticiper.';
+}
+
+function renderCompass(domAngle, wAvg, segInfo) {
+  // Draw a compass with cardinal labels and arrows for each hour of run
+  const cx = 100, cy = 100, r = 80;
+  let svg = '';
+  // outer circle
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="rgba(255,255,255,0.02)" stroke="#2a3340" stroke-width="1"/>`;
+  // tick marks
+  for (let i = 0; i < 16; i++) {
+    const a = (i * 22.5) * Math.PI / 180;
+    const r1 = i % 4 === 0 ? r - 8 : r - 4;
+    const x1 = cx + Math.sin(a) * r1, y1 = cy - Math.cos(a) * r1;
+    const x2 = cx + Math.sin(a) * r, y2 = cy - Math.cos(a) * r;
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#3d4856" stroke-width="${i % 4 === 0 ? 1.5 : 1}"/>`;
+  }
+  // cardinal labels
+  const labels = [['N',0],['E',90],['S',180],['O',270]];
+  labels.forEach(([txt,deg]) => {
+    const a = deg * Math.PI / 180;
+    const lx = cx + Math.sin(a) * (r + 12), ly = cy - Math.cos(a) * (r + 12) + 4;
+    svg += `<text x="${lx}" y="${ly}" text-anchor="middle" fill="#9aa5b1" font-size="11" font-weight="600">${txt}</text>`;
+  });
+  // Per-segment arrows (small)
+  segInfo.forEach((s, i) => {
+    if (i % 5 !== 0 && i !== segInfo.length-1) return; // every 5 km
+    const dirGo = (s.w.direction + 180) % 360;
+    const a = dirGo * Math.PI / 180;
+    const arrowR = r * 0.65;
+    const x = cx + Math.sin(a) * arrowR, y = cy - Math.cos(a) * arrowR;
+    const color = s.w.speed >= 25 ? '#ff5b5b' : (s.w.speed >= 15 ? '#ffb648' : '#4ea8de');
+    svg += `<circle cx="${x}" cy="${y}" r="3" fill="${color}" opacity="0.6"/>`;
+  });
+  // Main arrow (dominant direction wind GOES)
+  const goAngle = (domAngle + 180) % 360;
+  const a = goAngle * Math.PI / 180;
+  const tipX = cx + Math.sin(a) * (r * 0.7), tipY = cy - Math.cos(a) * (r * 0.7);
+  const tailX = cx - Math.sin(a) * (r * 0.5), tailY = cy + Math.cos(a) * (r * 0.5);
+  const color = wAvg >= 25 ? '#ff5b5b' : (wAvg >= 15 ? '#ffb648' : '#4ea8de');
+  svg += `<line x1="${tailX}" y1="${tailY}" x2="${tipX}" y2="${tipY}" stroke="${color}" stroke-width="4" stroke-linecap="round"/>`;
+  // Arrow head
+  const ah = 10;
+  const lx = tipX - Math.sin(a - 0.4) * ah, ly = tipY + Math.cos(a - 0.4) * ah;
+  const rx = tipX - Math.sin(a + 0.4) * ah, ry = tipY + Math.cos(a + 0.4) * ah;
+  svg += `<polygon points="${tipX},${tipY} ${lx},${ly} ${rx},${ry}" fill="${color}"/>`;
+  // Center dot + speed label
+  svg += `<circle cx="${cx}" cy="${cy}" r="4" fill="${color}"/>`;
+  svg += `<text x="${cx}" y="${cy + 28}" text-anchor="middle" fill="${color}" font-size="14" font-weight="700">${wAvg.toFixed(0)}</text>`;
+  svg += `<text x="${cx}" y="${cy + 42}" text-anchor="middle" fill="#9aa5b1" font-size="10">km/h moy.</text>`;
+  return svg;
+}
+
+// ---- Map view layers ----
+let LAST_SPLITS = []; // populated by renderSplits via global side-effect
+function rebuildMapLayers(splits, basePace, startStr) {
+  layerEffort.clearLayers();
+  layerWind.clearLayers();
+  if (!splits || splits.length === 0) return;
+
+  // Effort layer: colored polylines per km
+  splits.forEach((s, i) => {
+    const points = TRACK_BY_KM[Math.floor(s.kmStart)];
+    if (!points || points.length < 2) return;
+    const color = effortColor(s.adjPace - basePace);
+    L.polyline(points, { color, weight: 6, opacity: 0.95 }).addTo(layerEffort);
+  });
+
+  // Wind arrows every ~5 km
+  const [sh, sm] = startStr.split(':').map(Number);
+  const startHour = sh + sm/60;
+  let cumSec = 0;
+  splits.forEach((s, i) => {
+    cumSec += s.adjPace * s.len;
+    const isMile = (i + 1) % 5 === 0 || i === splits.length - 1;
+    if (!isMile) return;
+    const midSec = cumSec - s.adjPace * s.len / 2;
+    const hour = (startHour + midSec / 3600) % 24;
+    const w = weatherAt(hour);
+    const wr = windRelative(w.speed, w.direction, s.bearing);
+    const arrowColor = w.speed >= 25 ? '#ff5b5b' : (w.speed >= 15 ? '#ffb648' : '#4ea8de');
+    // Arrow points in the direction the wind is going (toward), so rotate by (windDir+180)
+    const rot = (w.direction + 180) % 360;
+    const html = `
+      <div class="wind-arrow" style="position:relative;">
+        <svg width="22" height="22" viewBox="0 0 22 22" style="transform:rotate(${rot}deg);">
+          <path d="M11 2 L17 18 L11 14 L5 18 Z" fill="${arrowColor}" stroke="white" stroke-width="0.5"/>
+        </svg>
+        <div class="lbl">${w.speed.toFixed(0)} km/h</div>
+      </div>`;
+    const lat = (TRACK_BY_KM[Math.floor(s.kmStart)] || [[s.lat, s.lon]])[0][0];
+    const lon = (TRACK_BY_KM[Math.floor(s.kmStart)] || [[s.lat, s.lon]])[0][1];
+    L.marker([s.lat, s.lon], {
+      icon: L.divIcon({ className: '', html, iconSize: [32, 32], iconAnchor: [16, 16] }),
+      interactive: true,
+    }).bindPopup(`<b>Km ${s.kmEnd} · ${Math.round(hour)}h${String(Math.round((hour%1)*60)).padStart(2,'0')}</b><br>Vent ${w.speed.toFixed(0)} km/h ${dirToCardinal(w.direction)}<br>${wr.label} (course)`).addTo(layerWind);
+  });
+}
+
+const mapToggles = document.querySelectorAll('.map-toggles .chip');
+const legendEl = document.getElementById('mapLegend');
+function setMapView(view) {
+  mapToggles.forEach(c => c.classList.toggle('active', c.dataset.view === view));
+  map.removeLayer(layerRoute); map.removeLayer(layerEffort); map.removeLayer(layerWind);
+  if (view === 'route') {
+    layerRoute.addTo(map);
+    legendEl.innerHTML = '';
+    legendEl.classList.remove('visible');
+  } else if (view === 'effort') {
+    layerEffort.addTo(map);
+    legendEl.innerHTML = `
+      <span><span class="swatch" style="background:#9ad27a"></span>Facile</span>
+      <span><span class="swatch" style="background:#ffd24a"></span>Modéré</span>
+      <span><span class="swatch" style="background:#ff9d4a"></span>Soutenu</span>
+      <span><span class="swatch" style="background:#ff7250"></span>Difficile</span>
+      <span><span class="swatch" style="background:#ff3b3b"></span>Très difficile</span>
+      <span style="margin-left:auto;color:var(--fg-2)">Couleur = pénalité estimée vs allure de base</span>`;
+    legendEl.classList.add('visible');
+  } else if (view === 'wind') {
+    layerRoute.addTo(map);
+    layerWind.addTo(map);
+    legendEl.innerHTML = `
+      <span>↑ direction où va le vent à l'heure de passage</span>
+      <span><span class="swatch" style="background:#4ea8de"></span>&lt; 15 km/h</span>
+      <span><span class="swatch" style="background:#ffb648"></span>15–25 km/h</span>
+      <span><span class="swatch" style="background:#ff5b5b"></span>&ge; 25 km/h</span>`;
+    legendEl.classList.add('visible');
+  }
+}
+mapToggles.forEach(c => c.addEventListener('click', () => setMapView(c.dataset.view)));
+setMapView('route');
+
+// ---- Nutrition & energy ----
+const weightInput = document.getElementById('weight');
+weightInput.addEventListener('input', () => renderNutrition(LAST_TOTAL, LAST_START, LAST_BASE_PACE));
+let LAST_TOTAL = 0, LAST_START = '09:00', LAST_BASE_PACE = 330;
+
+function kmAtTime(timeSec, splits, basePace) {
+  // Find km reached at given elapsed timeSec, using adjusted paces
+  let cum = 0;
+  for (const s of splits) {
+    const segSec = s.adjPace * s.len;
+    if (cum + segSec >= timeSec) {
+      const ratio = (timeSec - cum) / segSec;
+      return s.kmStart + ratio * s.len;
+    }
+    cum += segSec;
+  }
+  return ROUTE.totalKm;
+}
+
+function renderNutrition(totalSec, startStr, basePace) {
+  LAST_TOTAL = totalSec; LAST_START = startStr; LAST_BASE_PACE = basePace;
+  const kg = parseInt(weightInput.value, 10) || 70;
+  const km = ROUTE.totalKm;
+  const hours = totalSec / 3600;
+
+  // Energy needs
+  const calPerKmPerKg = 1.0; // ~1 kcal/kg/km running flat — close enough
+  const calories = Math.round(km * kg * calPerKmPerKg);
+  const wMaxTemp = WEATHER.daily.temperature_2m_max[0];
+  const waterRate = wMaxTemp > 22 ? 750 : (wMaxTemp > 16 ? 550 : 450); // ml/h
+  const totalWater = Math.round(waterRate * hours);
+  const carbsPerHour = hours >= 2.5 ? 60 : 45; // g/h
+  const totalCarbs = Math.round(carbsPerHour * Math.max(0, hours - 0.75)); // skip first 45 min
+  const sodiumNeeded = wMaxTemp > 18 || hours > 4;
+
+  document.getElementById('energyStats').innerHTML = `
+    <div class="e"><div class="l">Calories estimées</div><div class="v">${calories}<small>kcal</small></div><div class="h">~${calPerKmPerKg.toFixed(1)} kcal/kg/km · ${kg} kg</div></div>
+    <div class="e"><div class="l">Eau totale</div><div class="v">${(totalWater/1000).toFixed(1)}<small>L</small></div><div class="h">${waterRate} ml/h (temp max ${wMaxTemp.toFixed(0)}°C)</div></div>
+    <div class="e"><div class="l">Glucides à ingérer</div><div class="v">${totalCarbs}<small>g</small></div><div class="h">${carbsPerHour} g/h après 45 min</div></div>
+    <div class="e"><div class="l">Vitesse de course</div><div class="v">${(km/hours).toFixed(2)}<small>km/h</small></div><div class="h">durée totale ${fmtSeconds(totalSec)}</div></div>
+    <div class="e"><div class="l">Sodium</div><div class="v">${sodiumNeeded ? '⚠️ oui' : 'non'}<small></small></div><div class="h">${sodiumNeeded ? '300–500 mg/h conseillé' : 'pas critique à 16°C'}</div></div>
+    <div class="e"><div class="l">Gels (25 g glucides)</div><div class="v">${Math.ceil(totalCarbs / 25)}<small>gels</small></div><div class="h">+ ce que tu prends en boisson énergétique</div></div>
+  `;
+
+  // Timeline: water every 15 min, gel every ~30 min after t=45min
+  const events = [];
+  events.push({ type: 'start', time: 0, action: '🏁 Départ', detail: 'Boisson +200 ml dans la dernière heure avant' });
+  // Water
+  for (let t = 15*60; t < totalSec - 5*60; t += 15*60) {
+    events.push({ type: 'water', time: t, action: '💧 Boire', detail: `~${Math.round(waterRate/4)} ml (gorgées régulières)` });
+  }
+  // Gel
+  for (let t = 45*60; t < totalSec - 10*60; t += 30*60) {
+    events.push({ type: 'gel', time: t, action: '🍬 Gel ~25 g glucides', detail: 'Avec quelques gorgées d\'eau' });
+  }
+  // Salt if needed
+  if (sodiumNeeded) {
+    for (let t = 60*60; t < totalSec - 10*60; t += 60*60) {
+      events.push({ type: 'salt', time: t, action: '🧂 Pastille / cap sel', detail: '~300 mg sodium' });
+    }
+  }
+  events.push({ type: 'finish', time: totalSec, action: '🏆 Arrivée', detail: 'Récup : protéines+glucides dans 30 min' });
+
+  events.sort((a, b) => a.time - b.time);
+
+  document.getElementById('nutritionTimeline').innerHTML = events.map(e => {
+    const km = kmAtTime(e.time, LAST_SPLITS, LAST_BASE_PACE);
+    const arrival = addSeconds(startStr, e.time).slice(0,5);
+    return `<div class="nut-event ${e.type}">
+      <div><span class="nut-time">${arrival} · +${fmtSeconds(e.time)}</span><span class="nut-km">km ${km.toFixed(1)}</span></div>
+      <div class="nut-action">${e.action}</div>
+      <div class="nut-detail">${e.detail}</div>
+    </div>`;
+  }).join('');
+}
+
+const paceChips = document.querySelectorAll('.chip-row .chip');
+paceRange.addEventListener('input', () => {
+  paceChips.forEach(c => c.classList.toggle('active', c.dataset.pace === paceRange.value));
+  renderSplits();
+});
+paceText.addEventListener('change', () => {
+  const sec = parsePace(paceText.value);
+  if (sec && sec >= 180 && sec <= 720) { paceRange.value = sec; renderSplits(); }
+});
+startTime.addEventListener('input', renderSplits);
+paceChips.forEach(c => {
+  c.addEventListener('click', () => {
+    paceRange.value = c.dataset.pace;
+    paceChips.forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    renderSplits();
+  });
+});
+[useElev, useWind, useFatigue, fatigueLevel].forEach(el => {
+  el.addEventListener('input', renderSplits);
+  el.addEventListener('change', renderSplits);
+});
+
+renderSplits();
+
+// ====== Weather ======
+const wmoMap = {
+  0: ['Ciel clair', '☀️'], 1: ['Plutôt clair', '🌤'], 2: ['Partiellement nuageux', '⛅'],
+  3: ['Couvert', '☁️'], 45: ['Brouillard', '🌫'], 48: ['Brouillard givrant', '🌫'],
+  51: ['Bruine légère', '🌦'], 53: ['Bruine modérée', '🌦'], 55: ['Bruine dense', '🌧'],
+  61: ['Pluie légère', '🌧'], 63: ['Pluie modérée', '🌧'], 65: ['Pluie forte', '🌧'],
+  71: ['Neige légère', '🌨'], 80: ['Averses', '🌦'], 81: ['Averses fortes', '🌧'],
+  95: ['Orage', '⛈'],
+};
+
+function dirToCardinal(deg) {
+  const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+  return dirs[Math.round(((deg % 360)/22.5)) % 16];
+}
+
+const w = WEATHER;
+const dayCode = w.daily.weather_code[0];
+const wd = wmoMap[dayCode] || ['Conditions variables', '🌤'];
+
+// Summary tiles
+$('#weatherSummary').innerHTML = `
+  <div class="item"><div class="l">Conditions</div><div class="v">${wd[1]} ${wd[0]}</div></div>
+  <div class="item"><div class="l">Temp. min/max</div><div class="v">${w.daily.temperature_2m_min[0].toFixed(0)} / ${w.daily.temperature_2m_max[0].toFixed(0)}<small> °C</small></div></div>
+  <div class="item"><div class="l">Pluie cumulée</div><div class="v">${w.daily.precipitation_sum[0].toFixed(1)}<small> mm</small></div></div>
+  <div class="item"><div class="l">Vent max</div><div class="v">${w.daily.wind_speed_10m_max[0].toFixed(0)}<small> km/h</small></div></div>
+  <div class="item"><div class="l">Lever du soleil</div><div class="v">${w.daily.sunrise[0].slice(11)}</div></div>
+  <div class="item"><div class="l">Coucher</div><div class="v">${w.daily.sunset[0].slice(11)}</div></div>
+`;
+
+// Alerts based on data
+const alerts = [];
+const earlyWind = Math.max(...w.hourly.wind_speed_10m.slice(6, 11));
+const earlyGusts = Math.max(...w.hourly.wind_gusts_10m.slice(6, 11));
+const earlyRainProb = Math.max(...w.hourly.precipitation_probability.slice(6, 11));
+const dayMaxTemp = w.daily.temperature_2m_max[0];
+const dayMinTemp = w.daily.temperature_2m_min[0];
+
+// Run-window analysis (9h-13h)
+const runStartH = 9, runEndH = 13;
+const runRainMax = Math.max(...w.hourly.precipitation.slice(runStartH, runEndH+1));
+const runRainSum = w.hourly.precipitation.slice(runStartH, runEndH+1).reduce((a,b)=>a+b, 0);
+const runRainProbMax = Math.max(...w.hourly.precipitation_probability.slice(runStartH, runEndH+1));
+const dayPrecipSum = w.daily.precipitation_sum[0];
+
+// Cardinal direction for early-morning wind (uses dirToCardinal defined above)
+const earlyDir = w.hourly.wind_direction_10m[8]; // 8h direction (start window)
+const earlyDirLabel = dirToCardinal(earlyDir);
+
+if (earlyGusts > 40) alerts.push({ type: 'warn', html: `💨 <b>Vent fort le matin</b> · rafales jusqu'à ${earlyGusts.toFixed(0)} km/h entre 6h–11h, vent de ${earlyDirLabel} (${earlyDir}°). Prévois coupe-vent et casquette serrée.` });
+if (runRainMax >= 2) alerts.push({ type: 'bad', html: `☔ <b>Pluie forte pendant la course</b> · jusqu'à ${runRainMax.toFixed(1)} mm/h (${runRainSum.toFixed(0)} mm cumulés sur 9h–13h). Veste imperméable obligatoire, gants fins, chaussettes de rechange dans le sac.` });
+else if (runRainProbMax > 50) alerts.push({ type: 'warn', html: `🌧 <b>Pluie probable pendant la course</b> · jusqu'à ${runRainProbMax}% à la mi-parcours. Prévois une couche imperméable légère.` });
+else if (earlyRainProb > 40) alerts.push({ type: 'warn', html: `🌧 <b>Risque de pluie matinale</b> · jusqu'à ${earlyRainProb}% de probabilité tôt le matin. Prends une couche imperméable légère.` });
+if (dayPrecipSum >= 20) alerts.push({ type: 'warn', html: `💧 <b>Journée pluvieuse</b> · ${dayPrecipSum.toFixed(0)} mm cumulés prévus. Sol mouillé, attention aux passages glissants (planches du pont, racines forêt).` });
+if (dayMaxTemp >= 14 && dayMaxTemp <= 17 && dayMinTemp >= 10) alerts.push({ type: 'good', html: `✅ <b>Température idéale pour un marathon</b> · ${dayMinTemp.toFixed(0)}–${dayMaxTemp.toFixed(0)}°C. Manchettes amovibles + tee-shirt technique seront parfaits.` });
+else if (dayMaxTemp >= 17 && dayMaxTemp <= 20) alerts.push({ type: 'warn', html: `🌡️ <b>Après-midi tiède</b> · ${dayMinTemp.toFixed(0)}–${dayMaxTemp.toFixed(0)}°C. Hydratation +20% sur la 2e moitié. Tee-shirt technique, pas de manches longues.` });
+if (Math.max(...w.hourly.uv_index) >= 6) alerts.push({ type: 'warn', html: `☀️ <b>UV élevé l'après-midi</b> · indice ${Math.max(...w.hourly.uv_index).toFixed(0)}. Crème solaire avant le départ + casquette obligatoire.` });
+
+$('#weatherAlerts').innerHTML = alerts.map(a => `<div class="alert ${a.type === 'good' ? 'good' : (a.type === 'bad' ? 'bad' : '')}">${a.html}</div>`).join('');
+
+// Weather chart (hourly 6h-22h focus)
+const hours = w.hourly.time.map(t => t.slice(11,16));
+const startH = 6, endH = 22;
+const wctx = document.getElementById('weatherChart').getContext('2d');
+new Chart(wctx, {
+  type: 'line',
+  data: {
+    labels: hours.slice(startH, endH+1),
+    datasets: [
+      { label: 'Temp. (°C)', data: w.hourly.temperature_2m.slice(startH, endH+1), borderColor: '#ff8a4a', backgroundColor: 'rgba(255,138,74,0.1)', yAxisID: 'y1', tension: 0.3, pointRadius: 0, borderWidth: 2 },
+      { label: 'Pluie (%)', data: w.hourly.precipitation_probability.slice(startH, endH+1), borderColor: '#4ea8de', backgroundColor: 'rgba(78,168,222,0.15)', yAxisID: 'y2', tension: 0.3, pointRadius: 0, borderWidth: 2, fill: true },
+      { label: 'Vent (km/h)', data: w.hourly.wind_speed_10m.slice(startH, endH+1), borderColor: '#9aa5b1', borderDash: [4,3], yAxisID: 'y3', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: { ticks: { color: '#9aa5b1' }, grid: { color: '#2a3340' } },
+      y1: { type: 'linear', position: 'left', ticks: { color: '#ff8a4a', callback: v => v+'°' }, grid: { color: '#2a3340' } },
+      y2: { type: 'linear', position: 'right', min: 0, max: 100, ticks: { color: '#4ea8de', callback: v => v+'%' }, grid: { display: false } },
+      y3: { type: 'linear', position: 'right', display: false, min: 0 },
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterBody: (items) => {
+            const i = items[0].dataIndex + startH;
+            const wmo = w.hourly.weather_code[i];
+            const m = wmoMap[wmo] || [`code ${wmo}`, ''];
+            const dir = dirToCardinal(w.hourly.wind_direction_10m[i]);
+            return [
+              `${m[1]} ${m[0]}`,
+              `Rafales : ${w.hourly.wind_gusts_10m[i].toFixed(0)} km/h ${dir}`,
+              `Ressenti : ${w.hourly.apparent_temperature[i].toFixed(1)}°C`,
+              `Humidité : ${w.hourly.relative_humidity_2m[i]}%`,
+            ];
+          }
+        }
+      }
+    }
+  }
+});
+
+</script>
+</body>
+</html>
