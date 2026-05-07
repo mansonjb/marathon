@@ -357,9 +357,9 @@
   <div class="head">
     <h2>🗺️ Tracé · 43,66 km point-à-point</h2>
     <div class="map-toggles">
-      <span class="chip active" data-view="route">Tracé</span>
+      <span class="chip" data-view="route">Tracé</span>
       <span class="chip" data-view="effort">Effort</span>
-      <span class="chip" data-view="wind">Vent</span>
+      <span class="chip active" data-view="wind">Vent</span>
     </div>
   </div>
   <div id="map" style="height: 480px;"></div>
@@ -1261,7 +1261,7 @@ function setMapView(view) {
   }
 }
 mapToggles.forEach(c => c.addEventListener('click', () => setMapView(c.dataset.view)));
-setMapView('route');
+setMapView('wind');
 
 // ---- Nutrition & energy ----
 const weightInput = document.getElementById('weight');
