@@ -395,22 +395,22 @@
         <div class="calc-row">
           <div>
             <label>Allure (min/km)</label>
-            <input type="range" id="paceRange" min="240" max="540" step="5" value="330" />
-            <input type="text" id="paceText" value="5:30" />
+            <input type="range" id="paceRange" min="240" max="540" step="5" value="420" />
+            <input type="text" id="paceText" value="7:00" />
           </div>
           <div>
             <label>Heure de départ</label>
-            <input type="time" id="startTime" value="09:00" />
+            <input type="time" id="startTime" value="07:00" />
           </div>
         </div>
 
         <div class="chip-row">
           <span class="chip" data-pace="270">4:30</span>
           <span class="chip" data-pace="300">5:00</span>
-          <span class="chip active" data-pace="330">5:30</span>
+          <span class="chip" data-pace="330">5:30</span>
           <span class="chip" data-pace="360">6:00</span>
           <span class="chip" data-pace="390">6:30</span>
-          <span class="chip" data-pace="420">7:00</span>
+          <span class="chip active" data-pace="420">7:00</span>
           <span class="chip" data-pace="450">7:30</span>
         </div>
 
@@ -855,7 +855,7 @@ function windRelative(windSpeed, windDir, courseBearing) {
 
 function renderSplits() {
   const basePace = getPace();
-  const startStr = startTime.value || '09:00';
+  const startStr = startTime.value || '07:00';
   const [sh, sm] = startStr.split(':').map(Number);
   const startHour = sh + sm/60;
   paceText.value = fmtPace(basePace);
@@ -1266,7 +1266,7 @@ setMapView('route');
 // ---- Nutrition & energy ----
 const weightInput = document.getElementById('weight');
 weightInput.addEventListener('input', () => renderNutrition(LAST_TOTAL, LAST_START, LAST_BASE_PACE));
-let LAST_TOTAL = 0, LAST_START = '09:00', LAST_BASE_PACE = 330;
+let LAST_TOTAL = 0, LAST_START = '07:00', LAST_BASE_PACE = 420;
 
 function kmAtTime(timeSec, splits, basePace) {
   // Find km reached at given elapsed timeSec, using adjusted paces
